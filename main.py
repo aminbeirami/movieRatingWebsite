@@ -8,17 +8,9 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
-cron = Scheduler(daemon=True)
-cron.start()
-
-P=1
-
-@cron.interval_schedule(seconds=P)
-
 
 @app.route('/')
 def main():
-	fcn.hello()
 	return render_template('index.html')
 
 if __name__ == '__main__':
