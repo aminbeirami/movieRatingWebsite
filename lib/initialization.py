@@ -16,11 +16,11 @@ def db_function(): #turns on the triggers. if there are no triggers, it generate
 		        RETURN OLD;
 		    ELSIF (TG_OP = 'UPDATE') THEN
 		        INSERT INTO timeline (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
-		        SELECT NEW.id, NEW.usr_id, NEW.mv_name, NEW.rating,NEW.lat,NEW.long,NOW(),FALSE;
+		        SELECT NEW.id, NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,NOW(),FALSE;
 		        RETURN NEW;
 		    ELSIF (TG_OP = 'INSERT') THEN
 		        INSERT INTO timeline (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
-		        SELECT NEW.id, NEW.usr_id, NEW.mv_name, NEW.rating,NEW.lat,NEW.long,NOW(),FALSE;
+		        SELECT NEW.id, NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,NOW(),FALSE;
 		        RETURN NEW;
 		    END IF;
 		    RETURN NULL;
@@ -43,10 +43,14 @@ def drop_tables():
 	db.command(sql,None)
 	db.commit()
 
+def drop_function():
+	sql = "DROP FUNCTION IF EXISTS log_data()"
+	db.command(sql,None)
+	db.commit()
+
 def create_database(): 
 	sql = '''CREATE TABLE IF NOT EXISTS 
   	rating (id SERIAL,
-	rec_id INT,
 	mov_id INT,
 	mv_name TEXT,
 	mv_year TEXT,

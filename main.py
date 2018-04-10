@@ -13,7 +13,10 @@ app.secret_key = SECRET_KEY
 @app.route('/')
 def main():
 	# fcn.random_rating()
-	init.create_database()
+	# init.drop_tables()
+	# init.drop_function()
+	# init.create_database()
+	init.db_function()
 	return render_template('index.html')
 
 if __name__ == '__main__':
