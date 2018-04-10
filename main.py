@@ -3,6 +3,7 @@ from apscheduler.scheduler import Scheduler
 from flask import Flask, render_template, session, request, flash, redirect, url_for
 from lib.config import *
 from lib import functions as fcn
+from lib import initialization as init
 from functools import wraps
 
 app = Flask(__name__)
@@ -11,6 +12,8 @@ app.secret_key = SECRET_KEY
 
 @app.route('/')
 def main():
+	# fcn.random_rating()
+	init.create_database()
 	return render_template('index.html')
 
 if __name__ == '__main__':

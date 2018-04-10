@@ -1,3 +1,7 @@
+from lib import postgresCon as pc
+from lib.config import *
+db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
+
 def db_function(): #turns on the triggers. if there are no triggers, it generates the triggers.
 	sql = '''
 		CREATE FUNCTION log_data()
@@ -7,15 +11,15 @@ def db_function(): #turns on the triggers. if there are no triggers, it generate
 		$$
 		  BEGIN
 		    IF (TG_OP = 'DELETE') THEN
-		        INSERT INTO timeline (r_id, username, movie_name, rating, lat, long, ttime, deleted)
-		        SELECT OLD.id, NULL, NULL, NULL, NULL, NULL, NULL, TRUE;
+		        INSERT INTO timeline (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
+		        SELECT OLD.id, NULL, NULL, NULL, NULL, NULL, NULL,NULL,NULL,NULL,TRUE,NOW();
 		        RETURN OLD;
 		    ELSIF (TG_OP = 'UPDATE') THEN
-		        INSERT INTO timeline (r_id,username, movie_name, rating, lat, long, ttime, deleted)
+		        INSERT INTO timeline (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
 		        SELECT NEW.id, NEW.usr_id, NEW.mv_name, NEW.rating,NEW.lat,NEW.long,NOW(),FALSE;
 		        RETURN NEW;
 		    ELSIF (TG_OP = 'INSERT') THEN
-		        INSERT INTO timeline (r_id, username, movie_name, rating, lat, long, ttime, deleted)
+		        INSERT INTO timeline (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
 		        SELECT NEW.id, NEW.usr_id, NEW.mv_name, NEW.rating,NEW.lat,NEW.long,NOW(),FALSE;
 		        RETURN NEW;
 		    END IF;
@@ -23,18 +27,35 @@ def db_function(): #turns on the triggers. if there are no triggers, it generate
 		  END;
 		$$;
 		'''
-	db.command(sql)
+	db.command(sql,None)
 	db.commit()
 
 	sql = '''CREATE TRIGGER base_data_log
 		AFTER INSERT OR UPDATE OR DELETE ON rating
 		FOR EACH ROW EXECUTE PROCEDURE log_data()
 		'''
-	db.command(sql)
+	db.command(sql,None)
 	db.commit()
 	print 'relevant triggers created'
 
-def create_Database(): 
-  cur.execute("CREATE TABLE IF NOT EXISTS rating (id SERIAL,usr_id INT,mv_name TEXT,rating INT, lat TEXT,long TEXT)")
-  conn.commit()
-  print 'relevant databases created successfully!'
+def drop_tables():
+	sql = "DROP TABLE IF EXISTS rating"
+	db.command(sql,None)
+	db.commit()
+
+def create_database(): 
+	sql = '''CREATE TABLE IF NOT EXISTS 
+  	rating (id SERIAL,
+	rec_id INT,
+	mov_id INT,
+	mv_name TEXT,
+	mv_year TEXT,
+	release_date TIMESTAMP,
+	movie_url TEXT,
+	star INT,
+	user_id INT,
+	username TEXT,
+	signature TEXT )'''
+  	db.command(sql,None)
+  	db.commit()
+  	print 'relevant databases created successfully!'

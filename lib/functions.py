@@ -20,14 +20,14 @@ db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
 def random_user(): #chooses a random user from database
 	user_id = randint(0,1000)
-	sql = "SELECT * FROM users WHERE usr_id = (%s)"
+	sql = "SELECT * FROM users WHERE user_id = (%s)"
 	parameters = (user_id,)
 	usr_data = db.query(sql,parameters,'one')
 	return usr_data
 
 def random_movie(): #chooses a random movie name from database
 	movie_id = randint(0,1682)
-	sql = "SELECT mv_name FROM movies WHERE id = (%s)"
+	sql = "SELECT mv_name FROM movies WHERE mov_id = (%s)"
 	parameters = (movie_id,)
 	movie_name = db.query(sql,parameters,'one')
 	return movie_name
@@ -67,8 +67,5 @@ def random_rating():
 	for i in range(0,100):
 		random_insert()
 		random_update()
-		random_delete()
+		# random_delete()
 
-def hello():
-	cancel_future_calls = call_repeatedly(5, print, "Hello, World")
-	cancel_future_calls()
