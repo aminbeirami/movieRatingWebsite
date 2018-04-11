@@ -13,10 +13,7 @@ app.secret_key = SECRET_KEY
 @app.route('/')
 def main():
 	# fcn.random_rating()
-	# init.drop_tables()
-	# init.drop_function()
-	# init.create_database()
-	init.db_function()
+	fcn.table_attribs("timeline")
 	return render_template('index.html')
 
 if __name__ == '__main__':

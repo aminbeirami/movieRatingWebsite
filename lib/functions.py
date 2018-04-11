@@ -5,6 +5,7 @@ from random import randint
 from lib.config import *
 from time import sleep
 # from lib import thread_timer as tm
+
 from threading import Event, Thread
 
 def call_repeatedly(interval, func, *args):
@@ -17,29 +18,40 @@ def call_repeatedly(interval, func, *args):
 
 db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
+def records_count(table_name): # returns number of movies in the database
+	sql = "SELECT COUNT(*) FROM %s"
+	result = db.query(sql,table_name,"one")
+	return result[0]
+
+def table_attribs(table_name):
+	sql = "SELECT column_name FROM information_schema.columns WHERE table_name = '{0}'".format(table_name)
+	result = db.query(sql,table_name,"all")
+	result_list = [index[0] for index in result]
+	return result_list
 
 def random_user(): #chooses a random user from database
-	user_id = randint(0,1000)
+	user_id = randint(0,user_count())
 	sql = "SELECT * FROM users WHERE user_id = (%s)"
 	parameters = (user_id,)
-	usr_data = db.query(sql,parameters,'one')
+	usr_data = db.query(sql,None,'one')
 	return usr_data
 
 def random_movie(): #chooses a random movie name from database
-	movie_id = randint(0,1682)
-	sql = "SELECT mv_name FROM movies WHERE mov_id = (%s)"
+	movie_id = randint(0,movie_count())
+	sql = "SELECT * FROM movies WHERE mov_id = (%s)"
 	parameters = (movie_id,)
 	movie_name = db.query(sql,parameters,'one')
+	print movie_name
 	return movie_name
 
-def records_no(): # returns random number of records in the main database
-	sql = "SELECT COUNT(*) FROM rating"
-	size = db.query(sql,None,'one')
-	return size[0]
+def user_dictionary():
+	usr = random_user()
+	dict = dict()
 
 def random_insert (): #insrts random records to the main database
 	random_rating = randint(1,5)
 	usr = random_user()
+
 	movie = random_movie()
 	sql = "INSERT INTO rating(usr_id,mv_name,rating,lat,long) VALUES(%s,%s,%s,%s,%s)"
 	parameters = (usr[0],movie[0],random_rating,usr[1],usr[2])
