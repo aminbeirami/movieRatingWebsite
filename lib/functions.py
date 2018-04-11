@@ -19,25 +19,27 @@ def call_repeatedly(interval, func, *args):
 db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
 def records_count(table_name): # returns number of movies in the database
-	sql = "SELECT COUNT(*) FROM %s"
-	result = db.query(sql,table_name,"one")
+	sql = "SELECT COUNT(*) FROM {0}".format(table_name)
+	result = db.query(sql,None,"one")
 	return result[0]
 
 def table_attribs(table_name):
-	sql = "SELECT column_name FROM information_schema.columns WHERE table_name = '{0}'".format(table_name)
-	result = db.query(sql,table_name,"all")
+	sql = "SELECT column_name FROM information_schema.columns WHERE table_name = %s"
+	parameters = (table_name,)
+	result = db.query(sql,parameters,"all")
 	result_list = [index[0] for index in result]
 	return result_list
 
 def random_user(): #chooses a random user from database
-	user_id = randint(0,user_count())
-	sql = "SELECT * FROM users WHERE user_id = (%s)"
+	user_id = randint(0,records_count('users'))
+	sql = "SELECT * FROM users WHERE user_id = %s"
 	parameters = (user_id,)
-	usr_data = db.query(sql,None,'one')
+	usr_data = db.query(sql,parameters,'one')
+	print usr_data
 	return usr_data
 
 def random_movie(): #chooses a random movie name from database
-	movie_id = randint(0,movie_count())
+	movie_id = randint(0,records_count('movies'))
 	sql = "SELECT * FROM movies WHERE mov_id = (%s)"
 	parameters = (movie_id,)
 	movie_name = db.query(sql,parameters,'one')
