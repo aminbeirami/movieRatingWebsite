@@ -35,7 +35,6 @@ def random_user(): #chooses a random user from database
 	sql = "SELECT * FROM users WHERE user_id = %s"
 	parameters = (user_id,)
 	usr_data = db.query(sql,parameters,'one')
-	print usr_data
 	return usr_data
 
 def random_movie(): #chooses a random movie name from database
@@ -43,7 +42,6 @@ def random_movie(): #chooses a random movie name from database
 	sql = "SELECT * FROM movies WHERE mov_id = (%s)"
 	parameters = (movie_id,)
 	movie_name = db.query(sql,parameters,'one')
-	print movie_name
 	return movie_name
 
 def user_dictionary():
@@ -53,12 +51,13 @@ def user_dictionary():
 def random_insert (): #insrts random records to the main database
 	random_rating = randint(1,5)
 	usr = random_user()
-
+	print usr
 	movie = random_movie()
-	sql = "INSERT INTO rating(usr_id,mv_name,rating,lat,long) VALUES(%s,%s,%s,%s,%s)"
-	parameters = (usr[0],movie[0],random_rating,usr[1],usr[2])
-	db.insert(sql,parameters)
-	print 'the movie '+ movie[0] + ' by user '+str(usr[0])+ ' located at '+ str(usr[1])+ '-'+ str(usr[2])+ ' received '+str(random_rating)+ ' stars.'
+	rating_attribs = table_attribs('rating')
+	sql = "INSERT INTO rating({0}) VALUES(%s,%s,%s,%s,%s)".format(x for x in rating_attribs)
+	# parameters = (usr[0],movie[0],random_rating,usr[1],usr[2])
+	# db.insert(sql,parameters)
+	# print 'the movie '+ movie[0] + ' by user '+str(usr[0])+ ' located at '+ str(usr[1])+ '-'+ str(usr[2])+ ' received '+str(random_rating)+ ' stars.'
 
 def random_delete(): #deletes random number of records
   random_records = randint(1,records_no()/2)
