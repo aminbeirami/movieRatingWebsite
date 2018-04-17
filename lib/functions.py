@@ -50,18 +50,31 @@ def random_movie(): #chooses a random movie name from database
 	movie_attribs = table_attribs('movies')
 	movie_data = db.query(sql,parameters,'one')
 	movie_dictionary = make_dict(movie_attribs,movie_data)
-	print movie_dictionary
 	return movie_dictionary
 
-def random_insert (): #insrts random records to the main database
+def insert_parameters(user,movie,rating):
+	parameters = [movie['mov_id'],movie['mv_name'],movie['mv_year'],movie['release_date'],movie['movie_url'],rating,user['user_id'],user['username']]
+	return parameters
+
+def create_signature(raw_parameters,username):
+	sql = "SELECT private_key FROM users WHERE username = (%s)"
+	parameters = (username,)
+	key = db.query(sql,parameters,'one')
+	data = ''.join([str(x for x in raw_parameters)])
+	keyGen = kg.RSAEncryption()
+	signature = keyGen.generate_signature(data,key)
+	return signature
+
+def random_insert(): #insrts random records to the main database
 	random_rating = randint(1,5)
-	# usr = random_user()
-	random_user()
+	user = random_user()
 	movie = random_movie()
 	rating_attribs = [x for x in table_attribs('rating') if not x == 'id']
-	sql = "INSERT INTO rating VALUES(next_val('rating.id'),%s)"%",".join("%s" for i in range(len(rating_attribs)))
-	# parameters = (usr[0],movie[0],random_rating,usr[1],usr[2])
-	# db.insert(sql,parameters)
+	sql = "INSERT INTO rating VALUES(NEXTVAL('rating_id_seq'),%s)"%",".join("%s" for i in range(len(rating_attribs)))
+	parameters = insert_parameters(user,movie,random_rating)
+	signature = create_signature(parameters,user['username'])
+	parameters.append(signature)
+	db.insert(sql,parameters)
 	# print 'the movie '+ movie[0] + ' by user '+str(usr[0])+ ' located at '+ str(usr[1])+ '-'+ str(usr[2])+ ' received '+str(random_rating)+ ' stars.'
 
 def random_delete(): #deletes random number of records
