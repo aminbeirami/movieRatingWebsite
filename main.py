@@ -14,6 +14,10 @@ app.secret_key = SECRET_KEY
 def main():
 	# fcn.random_rating()
 	fcn.random_insert()
+	# init.drop_tables()
+	# init.drop_function()
+	# init.create_database()
+	# init.db_function()
 	return render_template('index.html')
 
 if __name__ == '__main__':

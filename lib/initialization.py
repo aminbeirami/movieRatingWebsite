@@ -15,12 +15,12 @@ def db_function(): #turns on the triggers. if there are no triggers, it generate
 		        SELECT OLD.id, NULL, NULL, NULL, NULL, NULL, NULL,NULL,NULL,NULL,TRUE,NOW();
 		        RETURN OLD;
 		    ELSIF (TG_OP = 'UPDATE') THEN
-		        INSERT INTO timeline (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
+		        INSERT INTO timeline 
 		        SELECT NEW.id, NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,NOW(),FALSE;
 		        RETURN NEW;
 		    ELSIF (TG_OP = 'INSERT') THEN
-		        INSERT INTO timeline (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
-		        SELECT NEW.id, NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,NOW(),FALSE;
+		        INSERT INTO timeline
+		        SELECT NEXTVAL('id'),NEW.id, NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,NOW(),FALSE;
 		        RETURN NEW;
 		    END IF;
 		    RETURN NULL;
@@ -63,3 +63,4 @@ def create_database():
   	db.command(sql,None)
   	db.commit()
   	print 'relevant databases created successfully!'
+# (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
