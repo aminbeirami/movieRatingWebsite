@@ -30,31 +30,36 @@ def table_attribs(table_name):
 	result_list = [index[0] for index in result]
 	return result_list
 
+def make_dict(attribs,data):
+	dictonary = dict(zip([x for x in attribs],[y for y in data]))
+	return dictonary
+
 def random_user(): #chooses a random user from database
 	user_id = randint(0,records_count('users'))
 	sql = "SELECT * FROM users WHERE user_id = %s"
 	parameters = (user_id,)
+	usr_attribs = table_attribs('users')
 	usr_data = db.query(sql,parameters,'one')
-	return usr_data
+	usr_dictionary = make_dict(usr_attribs,usr_data)
+	return usr_dictionary 
 
 def random_movie(): #chooses a random movie name from database
 	movie_id = randint(0,records_count('movies'))
 	sql = "SELECT * FROM movies WHERE mov_id = (%s)"
 	parameters = (movie_id,)
-	movie_name = db.query(sql,parameters,'one')
-	return movie_name
-
-def user_dictionary():
-	usr = random_user()
-	dict = dict()
+	movie_attribs = table_attribs('movies')
+	movie_data = db.query(sql,parameters,'one')
+	movie_dictionary = make_dict(movie_attribs,movie_data)
+	print movie_dictionary
+	return movie_dictionary
 
 def random_insert (): #insrts random records to the main database
 	random_rating = randint(1,5)
-	usr = random_user()
-	print usr
+	# usr = random_user()
+	random_user()
 	movie = random_movie()
-	rating_attribs = table_attribs('rating')
-	sql = "INSERT INTO rating({0}) VALUES(%s,%s,%s,%s,%s)".format(x for x in rating_attribs)
+	rating_attribs = [x for x in table_attribs('rating') if not x == 'id']
+	sql = "INSERT INTO rating VALUES(next_val('rating.id'),%s)"%",".join("%s" for i in range(len(rating_attribs)))
 	# parameters = (usr[0],movie[0],random_rating,usr[1],usr[2])
 	# db.insert(sql,parameters)
 	# print 'the movie '+ movie[0] + ' by user '+str(usr[0])+ ' located at '+ str(usr[1])+ '-'+ str(usr[2])+ ' received '+str(random_rating)+ ' stars.'
