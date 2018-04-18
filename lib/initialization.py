@@ -12,15 +12,15 @@ def db_function(): #turns on the triggers. if there are no triggers, it generate
 		  BEGIN
 		    IF (TG_OP = 'DELETE') THEN
 		        INSERT INTO timeline (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
-		        SELECT OLD.id, NULL, NULL, NULL, NULL, NULL, NULL,NULL,NULL,NULL,TRUE,NOW();
+		        SELECT NEXTVAL('id'), OLD.id, NULL, NULL, NULL, NULL, NULL, NULL, NULL,NULL,NULL,NULL,1,NOW();
 		        RETURN OLD;
 		    ELSIF (TG_OP = 'UPDATE') THEN
 		        INSERT INTO timeline 
-		        SELECT NEW.id, NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,NOW(),FALSE;
+		        SELECT NEXTVAL('id'), NEW.id , NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,0,NOW();
 		        RETURN NEW;
 		    ELSIF (TG_OP = 'INSERT') THEN
 		        INSERT INTO timeline
-		        SELECT NEXTVAL('id'),NEW.id, NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,NOW(),FALSE;
+		        SELECT NEXTVAL('id'), NEW.id , NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,0,NOW();
 		        RETURN NEW;
 		    END IF;
 		    RETURN NULL;

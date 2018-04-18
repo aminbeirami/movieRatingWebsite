@@ -75,6 +75,7 @@ def random_insert(): #insrts random records to the main database
 	signature = create_signature(parameters,user['username'])
 	parameters.append(signature)
 	db.insert(sql,parameters)
+	db.commit()
 	# print 'the movie '+ movie[0] + ' by user '+str(usr[0])+ ' located at '+ str(usr[1])+ '-'+ str(usr[2])+ ' received '+str(random_rating)+ ' stars.'
 
 def random_delete(): #deletes random number of records
