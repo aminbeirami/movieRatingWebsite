@@ -19,29 +19,25 @@ def random_insert(): #insrts random records to the main database
 	parameters.append(signature)
 	db.insert(sql,parameters)
 	db.commit()
-	# print 'the movie '+ movie[0] + ' by user '+str(usr[0])+ ' located at '+ str(usr[1])+ '-'+ str(usr[2])+ ' received '+str(random_rating)+ ' stars.'
 	print 'inserted'
 
 def random_delete(): #deletes random number of records
-  random_records = randint(1,fcn.records_count('rating')//2)
   try:
-	sql = "DELETE FROM rating WHERE id IN (SELECT id FROM rating ORDER BY RANDOM() LIMIT %s)"
-	parameters = (random_records,)
-	db.command(sql,parameters)
+	sql = "DELETE FROM rating WHERE id IN (SELECT id FROM rating ORDER BY RANDOM() LIMIT 1)"
+	db.command(sql,None)
 	db.commit()
-	print str(random_records) + " number of records deleted"
+	print 'deleted'
   except Exception as e:
   	print e
   
   
 def random_update(): #randomly chooses a record and updates it
-  random_records = randint(1,fcn.records_count('rating'))
   random_rating = randint(1,5)
-  sql = "UPDATE rating SET star = (%s) WHERE id IN (SELECT id FROM rating ORDER BY RANDOM() LIMIT %s)"
-  parameters = (random_rating,random_records)
+  sql = "UPDATE rating SET star = (%s) WHERE id IN (SELECT id FROM rating ORDER BY RANDOM() LIMIT 1)"
+  parameters = (random_rating,)
   db. command(sql,parameters)
   db.commit()
-  print str(random_records) + " number of records updated."
+  print 'updated'
 
 def random_rating(permission):
 	random_action = randint(1,3)
@@ -54,6 +50,6 @@ def random_rating(permission):
 		switcher[random_action]()
 	else:
 		if random_action == 3:
-			pass
+			switcher[1]()
 		else:
 			switcher[random_action]()
