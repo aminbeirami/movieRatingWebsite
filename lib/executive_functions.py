@@ -3,6 +3,8 @@ from lib import postgresCon as pc
 from lib.config import *
 from random import randint
 import random
+import time
+import threading
 
 db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
@@ -22,13 +24,16 @@ def random_insert(): #insrts random records to the main database
 
 def random_delete(): #deletes random number of records
   random_records = randint(1,fcn.records_count('rating')//2)
-  # print random_records
-  sql = "DELETE FROM rating WHERE id IN (SELECT id FROM rating ORDER BY RANDOM() LIMIT %s)"
-  parameters = (random_records,)
-  db.command(sql,parameters)
-  db.commit()
-  print str(random_records) + " number of records deleted"
-
+  try:
+	sql = "DELETE FROM rating WHERE id IN (SELECT id FROM rating ORDER BY RANDOM() LIMIT %s)"
+	parameters = (random_records,)
+	db.command(sql,parameters)
+	db.commit()
+	print str(random_records) + " number of records deleted"
+  except Exception as e:
+  	print e
+  
+  
 def random_update(): #randomly chooses a record and updates it
   random_records = randint(1,fcn.records_count('rating'))
   random_rating = randint(1,5)
@@ -36,15 +41,19 @@ def random_update(): #randomly chooses a record and updates it
   parameters = (random_rating,random_records)
   db. command(sql,parameters)
   db.commit()
-  # print str(random_records) + " number of records updated."
+  print str(random_records) + " number of records updated."
 
 def random_rating(permission):
-	for i in range(0,100):
-		if permission == True:
-			random_insert()
-			random_update()
-			if i%50 == 0:
-				random_delete()
+	random_action = randint(1,3)
+	switcher = {
+		1: random_insert,
+		2: random_update,
+		3: random_delete,
+	}
+	if permission == True:
+		switcher[random_action]()
+	else:
+		if random_action == 3:
+			pass
 		else:
-			random_insert()
-			random_update()
+			switcher[random_action]()

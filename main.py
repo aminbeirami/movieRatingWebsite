@@ -17,7 +17,7 @@ def main():
 	# init.drop_function()
 	# init.create_table()
 	# init.db_function()
-	ex.random_rating(True)
+	ex.random_rating(False)
 	return render_template('index.html')
 
 if __name__ == '__main__':
