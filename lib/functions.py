@@ -52,6 +52,11 @@ def random_movie(): #chooses a random movie name from database
 	movie_dictionary = make_dict(movie_attribs,movie_data)
 	return movie_dictionary
 
+def movie_id_list():
+	sql = "SELECT id FROM rating"
+	ids = db.query(sql,None,'all')
+	return [x[0] for x in ids]
+
 def insert_parameters(user,movie,rating):
 	parameters = [movie['mov_id'],movie['mv_name'],movie['mv_year'],movie['release_date'],movie['movie_url'],rating,user['user_id'],user['username']]
 	return parameters

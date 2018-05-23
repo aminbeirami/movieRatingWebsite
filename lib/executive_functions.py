@@ -2,6 +2,7 @@ from lib import functions as fcn
 from lib import postgresCon as pc
 from lib.config import *
 from random import randint
+import random
 
 db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
@@ -17,9 +18,11 @@ def random_insert(): #insrts random records to the main database
 	db.insert(sql,parameters)
 	db.commit()
 	# print 'the movie '+ movie[0] + ' by user '+str(usr[0])+ ' located at '+ str(usr[1])+ '-'+ str(usr[2])+ ' received '+str(random_rating)+ ' stars.'
+	print 'inserted'
 
 def random_delete(): #deletes random number of records
-  random_records = randint(1,fcn.records_count('rating')/2)
+  random_records = randint(1,fcn.records_count('rating')//2)
+  # print random_records
   sql = "DELETE FROM rating WHERE id IN (SELECT id FROM rating ORDER BY RANDOM() LIMIT %s)"
   parameters = (random_records,)
   db.command(sql,parameters)
@@ -33,10 +36,15 @@ def random_update(): #randomly chooses a record and updates it
   parameters = (random_rating,random_records)
   db. command(sql,parameters)
   db.commit()
-  print str(random_records) + " number of records updated."
+  # print str(random_records) + " number of records updated."
 
-def random_rating():
+def random_rating(permission):
 	for i in range(0,100):
-		random_insert()
-		random_update()
-		# random_delete()
+		if permission == True:
+			random_insert()
+			random_update()
+			if i%50 == 0:
+				random_delete()
+		else:
+			random_insert()
+			random_update()

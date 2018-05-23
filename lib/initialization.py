@@ -11,8 +11,8 @@ def db_function(): #turns on the triggers. if there are no triggers, it generate
 		$$
 		  BEGIN
 		    IF (TG_OP = 'DELETE') THEN
-		        INSERT INTO timeline (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
-		        SELECT NEXTVAL('id'), OLD.id, NULL, NULL, NULL, NULL, NULL, NULL, NULL,NULL,NULL,NULL,1,NOW();
+		        INSERT INTO timeline (id,rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
+		        SELECT NEXTVAL('id'), OLD.id, NULL, NULL, NULL, NULL, NULL, NULL, NULL,NULL,NULL,1,NOW();
 		        RETURN OLD;
 		    ELSIF (TG_OP = 'UPDATE') THEN
 		        INSERT INTO timeline 
@@ -48,7 +48,7 @@ def drop_function():
 	db.command(sql,None)
 	db.commit()
 
-def create_database(): 
+def create_table(): 
 	sql = '''CREATE TABLE IF NOT EXISTS 
   	rating (id SERIAL,
 	mov_id INT,
