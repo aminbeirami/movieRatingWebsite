@@ -1,6 +1,6 @@
 import atexit
 from apscheduler.scheduler import Scheduler
-from flask import Flask, render_template, session, request, flash, redirect, url_for
+from flask import Flask, render_template, session, request, flash, redirect, url_for,jsonify,make_response
 from lib.config import *
 from lib import functions as fcn
 from lib import initialization as init
@@ -13,9 +13,8 @@ app.secret_key = SECRET_KEY
 
 @app.route('/', methods= ['POST','GET'])
 def main():
-	ex.random_rating(True)
-	return render_template('index.html')
-
+	action_result = ex.random_rating(True)
+	return render_template('index.html',action = make_response(jsonify(action_result)))
 
 
 

@@ -63,9 +63,10 @@ def random_rating(permission):
 		3: random_delete,
 	}
 	if permission == True:
-		switcher[random_action]()
+		action_result = switcher[random_action]()
 	else:
 		if random_action == 3:
-			switcher[1]()
+			action_result = switcher[1]()
 		else:
-			switcher[random_action]()
+			action_result = switcher[random_action]()
+	return action_result
