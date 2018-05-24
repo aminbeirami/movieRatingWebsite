@@ -34,6 +34,21 @@ def make_dict(attribs,data):
 	dictonary = dict(zip([x for x in attribs],[y for y in data]))
 	return dictonary
 
+def fetch_everything_record(table_name,condition):
+	sql = "SELECT * FROM {0} WHERE {1}".format(table_name,condition)
+	rec_data = db.query(sql,None,'one')
+	rec_attribs = table_attribs(table_name)
+	rec_dictionary = make_dict(rec_attribs,rec_data)
+	return rec_dictionary
+
+def fetch_specific_attribs_record(attribs,table_name,condition):
+	result = {}
+	rec_dictionary = fetch_everything_record(table_name,condition)
+	for i in attribs:
+		result[i]=rec_dictionary[i]
+	return result
+
+
 def random_user(): #chooses a random user from database
 	user_id = randint(0,records_count('users'))
 	sql = "SELECT * FROM users WHERE user_id = %s"

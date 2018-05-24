@@ -11,14 +11,39 @@ app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
 
-@app.route('/')
+@app.route('/', methods= ['POST','GET'])
 def main():
+	ex.random_rating(False)
+	return render_template('index.html')
+
+
+
+
+
+
+
+
+
+
+
+	
+
+@app.route('/init')
+def initialization():
 	# init.drop_tables()
 	# init.drop_function()
 	# init.create_table()
 	# init.db_function()
 	ex.random_rating(False)
-	return render_template('index.html')
+	return render_template('base.html')
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
 	app.debug = True

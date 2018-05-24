@@ -19,7 +19,8 @@ def random_insert(): #insrts random records to the main database
 	parameters.append(signature)
 	db.insert(sql,parameters)
 	db.commit()
-	print 'inserted'
+	print {'action':'insert','user':user['username'],'movie':movie['mv_name'],'rating':random_rating,'position':[user['lat'],user['long']]}
+	# print 'inserted'
 
 def random_delete(): #deletes random number of records
   try:
@@ -31,13 +32,17 @@ def random_delete(): #deletes random number of records
   	print e
   
   
-def random_update(): #randomly chooses a record and updates it
-  random_rating = randint(1,5)
-  sql = "UPDATE rating SET star = (%s) WHERE id IN (SELECT id FROM rating ORDER BY RANDOM() LIMIT 1)"
-  parameters = (random_rating,)
-  db. command(sql,parameters)
-  db.commit()
-  print 'updated'
+def random_update():
+	random_rating = randint(1,5)
+	sql = "SELECT * FROM rating ORDER BY RANDOM() LIMIT 1"
+	result = db.query(sql,None,'one')
+	sql = "UPDATE rating SET star = (%s) WHERE id =(%s)"
+	parameters = (random_rating,result[0])
+	db. command(sql,parameters)
+	db.commit()
+
+	user_location = fcn.fetch_specific_attribs_record(['lat','long'],'users','user_id = {0}'.format(result[6]))
+	print {'action':'update','user':result[8],'movie':result[2],'rating':result[6],'position':[user_location['lat'],user_location['long']]}
 
 def random_rating(permission):
 	random_action = randint(1,3)
