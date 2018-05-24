@@ -13,7 +13,7 @@ app.secret_key = SECRET_KEY
 
 @app.route('/', methods= ['POST','GET'])
 def main():
-	ex.random_rating(False)
+	ex.random_rating(True)
 	return render_template('index.html')
 
 
@@ -34,7 +34,7 @@ def initialization():
 	# init.drop_function()
 	# init.create_table()
 	# init.db_function()
-	ex.random_rating(False)
+	ex.random_rating(True)
 	return render_template('base.html')
 
 

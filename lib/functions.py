@@ -18,10 +18,6 @@ def call_repeatedly(interval, func, *args):
 
 db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
-def records_count(table_name): # returns number of movies in the database
-	sql = "SELECT COUNT(*) FROM {0}".format(table_name)
-	result = db.query(sql,None,"one")
-	return result[0]
 
 def table_attribs(table_name):
 	sql = "SELECT column_name FROM information_schema.columns WHERE table_name = %s"
@@ -35,7 +31,7 @@ def make_dict(attribs,data):
 	return dictonary
 
 def fetch_everything_record(table_name,condition):
-	sql = "SELECT * FROM {0} WHERE {1}".format(table_name,condition)
+	sql = "SELECT * FROM {0} {1}".format(table_name,condition)
 	rec_data = db.query(sql,None,'one')
 	rec_attribs = table_attribs(table_name)
 	rec_dictionary = make_dict(rec_attribs,rec_data)
@@ -48,24 +44,20 @@ def fetch_specific_attribs_record(attribs,table_name,condition):
 		result[i]=rec_dictionary[i]
 	return result
 
+def records_count(table_name): # returns number of movies in the database
+	sql = "SELECT COUNT(*) FROM {0}".format(table_name)
+	result = db.query(sql,None,"one")
+	return result[0]
 
 def random_user(): #chooses a random user from database
 	user_id = randint(0,records_count('users'))
-	sql = "SELECT * FROM users WHERE user_id = %s"
-	parameters = (user_id,)
-	usr_attribs = table_attribs('users')
-	usr_data = db.query(sql,parameters,'one')
-	usr_dictionary = make_dict(usr_attribs,usr_data)
-	return usr_dictionary 
+	user_data = fetch_everything_record('users','where user_id = {0}'.format(user_id))
+	return user_data 
 
 def random_movie(): #chooses a random movie name from database
 	movie_id = randint(0,records_count('movies'))
-	sql = "SELECT * FROM movies WHERE mov_id = (%s)"
-	parameters = (movie_id,)
-	movie_attribs = table_attribs('movies')
-	movie_data = db.query(sql,parameters,'one')
-	movie_dictionary = make_dict(movie_attribs,movie_data)
-	return movie_dictionary
+	movie_data = fetch_everything_record('movies','where mov_id = {0}'.format(movie_id))
+	return movie_data
 
 def movie_id_list():
 	sql = "SELECT id FROM rating"
@@ -77,12 +69,10 @@ def insert_parameters(user,movie,rating):
 	return parameters
 
 def create_signature(raw_parameters,username):
-	sql = "SELECT private_key FROM users WHERE username = (%s)"
-	parameters = (username,)
-	key = db.query(sql,parameters,'one')
+	key = fetch_specific_attribs_record(['private_key',],'users',"where username = '{0}'".format(username))
 	data = ''.join([str(x for x in raw_parameters)])
 	keyGen = kg.RSAEncryption()
-	signature = keyGen.generate_signature(data,key)
+	signature = keyGen.generate_signature(data,key['private_key'])
 	return signature
 
 
