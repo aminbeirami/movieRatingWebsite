@@ -20,12 +20,12 @@ def main():
 def actions_json():
 	list_len = len(json_list)
 	if list_len <=10:
-		json_list.append (ex.random_rating(True))
+		json_list.insert(0,ex.random_rating(True))
 	else:
-		json_list.pop(0)
-		json_list.append(ex.random_rating(True))
-	print json_list
-	return jsonify(json_list)
+		json_list.pop(10)
+		json_list.insert(0,ex.random_rating(True))
+	print reversed(json_list)
+	return jsonify((json_list))
 
 
 	
