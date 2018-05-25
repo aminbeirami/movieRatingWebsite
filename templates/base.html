@@ -237,12 +237,16 @@
 
     <!-- jQuery -->
     <script src="../static/vendor/jquery/jquery.min.js"></script>
+
     <script type="text/javascript">
         $(document).ready(function(){
             $.getJSON("http://localhost:5000/actions",function(data){
                 action_data = '';
                 $.each(data,function(key,value){
-                    action_data += '<tr>';
+                    if(value.action == 'delete')
+                        {action_data += '<tr bgcolor="#FF0000">';}
+                    else
+                        {action_data += '<tr>';}
                     action_data += '<td>' + value.action + '</td>';
                     action_data += '<td>' + value.movie + '</td>';
                     action_data += '<td>' + value.user + '</td>';

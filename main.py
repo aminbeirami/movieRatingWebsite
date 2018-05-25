@@ -10,12 +10,15 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 json_list = []
+cron = Scheduler(daemon=True)
+cron.start()
+P=1
 
 @app.route('/', methods= ['POST','GET'])
 def main():
 	return render_template('index.html')
 
-
+@cron.interval_schedule(seconds=P)
 @app.route('/actions', methods = ['POST','GET'])
 def actions_json():
 	list_len = len(json_list)
@@ -24,7 +27,7 @@ def actions_json():
 	else:
 		json_list.pop(10)
 		json_list.insert(0,ex.random_rating(True))
-	print reversed(json_list)
+	print json_list
 	return jsonify((json_list))
 
 
