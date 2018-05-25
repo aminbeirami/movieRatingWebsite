@@ -9,20 +9,23 @@ from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
-
+json_list = []
 
 @app.route('/', methods= ['POST','GET'])
 def main():
-	action_result = ex.random_rating(True)
-	return render_template('index.html',action = make_response(jsonify(action_result)))
+	return render_template('index.html')
 
 
-
-
-
-
-
-
+@app.route('/actions', methods = ['POST','GET'])
+def actions_json():
+	list_len = len(json_list)
+	if list_len <=10:
+		json_list.append (ex.random_rating(True))
+	else:
+		json_list.pop(0)
+		json_list.append(ex.random_rating(True))
+	print json_list
+	return jsonify(json_list)
 
 
 	

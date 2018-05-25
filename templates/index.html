@@ -1,4 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<p>{{action['action']}}</p>
+<table class="table table_bordered table_striped" id="action_table">
+	<tr>
+		<th>action</th>
+		<th>movie name</th>
+		<th>user</th>
+		<th>rating</th>
+	</tr>
+</table>
+
 {% endblock %}
