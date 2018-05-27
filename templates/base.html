@@ -240,7 +240,8 @@
 
     <script type="text/javascript">
         $(document).ready(function(){
-            $.getJSON("http://localhost:5000/actions",function(data){
+            refresh();
+            $.getJSON("/actions",function(data){
                 action_data = '';
                 $.each(data,function(key,value){
                     if(value.action == 'delete')
@@ -256,6 +257,12 @@
                 $('#action_table').append(action_data);
             });
         });
+        function refresh(){
+            setTimeout(function(){
+                $('#actions_update').fadeOut('slow').load('/actions').fadeIn('slow');
+                refresh();
+            },200);
+        }
     </script>
 
     <!-- Bootstrap Core JavaScript -->
