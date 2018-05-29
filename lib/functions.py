@@ -75,5 +75,15 @@ def create_signature(raw_parameters,username):
 	signature = keyGen.generate_signature(data,key['private_key'])
 	return signature
 
-
-
+def table_size():
+	sql = "SELECT pg_size_pretty(pg_total_relation_size('timeline'))"
+	result = db.query(sql,None,'one')
+	int_size = [int(s) for s in result[0].split() if s.isdigit()]
+	alpha_size = [a for a in result[0].split() if a.isalpha()]
+	if alpha_size[0] =='kB':
+		int_size[0] *=1000
+	elif(alpha_size[0] =='MB'):
+		int_size[0] *=1000000
+	elif(alpha_size[0] == 'GB'):
+		int_size[0] *=1000000000
+	return int_size[0]
