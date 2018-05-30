@@ -239,30 +239,30 @@
     <script src="../static/vendor/jquery/jquery.min.js"></script>
 
     <script type="text/javascript">
-        // $(document).ready(function(){
-        //     refresh();
-        //     $.getJSON("/actions",function(data){
-        //         action_data = '';
-        //         $.each(data,function(key,value){
-        //             if(value.action == 'delete')
-        //                 {action_data += '<tr bgcolor="#FF0000">';}
-        //             else
-        //                 {action_data += '<tr>';}
-        //             action_data += '<td>' + value.action + '</td>';
-        //             action_data += '<td>' + value.movie + '</td>';
-        //             action_data += '<td>' + value.user + '</td>';
-        //             action_data += '<td>' + value.rating + '</td>';
-        //             action_data += '</tr>';
-        //         });
-        //         $('#action_table').append(action_data);
-        //     });
-        // });
-        // function refresh(){
-        //     setTimeout(function(){
-        //         $('#actions_update').fadeOut('slow').load('/actions').fadeIn('slow');
-        //         refresh();
-        //     },200);
-        // }
+        $(document).ready(function(){
+            refresh();
+            $.getJSON("/actions",function(data){
+                action_data = '';
+                $.each(data,function(key,value){
+                    if(value.action == 'delete')
+                        {action_data += '<tr bgcolor="#FF0000">';}
+                    else
+                        {action_data += '<tr>';
+                        action_data += '<td>' + value.action + '</td>';
+                        action_data += '<td>' + value.movie + '</td>';
+                        action_data += '<td>' + value.user + '</td>';
+                        action_data += '<td>' + value.rating + '</td>';
+                        action_data += '</tr>';}
+                });
+                $('#table_body').append(action_data);
+            });
+        });
+        function refresh(){
+            setTimeout(function(){
+                $('#table_body').load('/action_table');
+                refresh();
+            },1000);
+        }
     </script>
 
     <!-- Bootstrap Core JavaScript -->

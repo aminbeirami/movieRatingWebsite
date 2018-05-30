@@ -2,6 +2,7 @@ from lib import functions as fcn
 from lib import postgresCon as pc
 from lib.config import *
 from random import randint
+from datetime import datetime
 import random
 import time
 import threading
@@ -19,7 +20,7 @@ def random_insert(): #insrts random records to the main database
 	parameters.append(signature)
 	db.insert(sql,parameters)
 	db.commit()
-	return {'action':'insert','user':user['username'],'movie':movie['mv_name'],'rating':random_rating,'position':[user['lat'],user['long']]}
+	return {'action':'insert','user':user['username'],'movie':movie['mv_name'],'rating':random_rating,'position':[user['lat'],user['long']],'time':str(datetime.now())}
 
 
 def random_delete(): #deletes random number of records
@@ -35,7 +36,8 @@ def random_delete(): #deletes random number of records
 		'movie':random_record['mv_name'],\
 		'rating':random_record['star'],\
 		'position':[user_location['lat'],\
-		user_location['long']]}
+		user_location['long']],
+		'time':str(datetime.now())}
 	except Exception as e:
 		print e
 		return 'error'
@@ -53,7 +55,8 @@ def random_update():
 	'movie':random_record['mv_name'],\
 	'rating':random_record['star'],\
 	'position':[user_location['lat'],\
-	user_location['long']]}
+	user_location['long']],
+	'time':datetime.now()}
 
 def random_rating(permission):
 	random_action = randint(1,3)

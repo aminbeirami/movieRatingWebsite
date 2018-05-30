@@ -4,6 +4,7 @@ from lib import keyGen as kg
 from random import randint
 from lib.config import *
 from time import sleep
+from datetime import datetime
 # from lib import thread_timer as tm
 
 from threading import Event, Thread
@@ -76,14 +77,7 @@ def create_signature(raw_parameters,username):
 	return signature
 
 def table_size():
-	sql = "SELECT pg_size_pretty(pg_total_relation_size('timeline'))"
+	sql = "select pg_relation_size('rating');"
 	result = db.query(sql,None,'one')
-	int_size = [int(s) for s in result[0].split() if s.isdigit()]
-	alpha_size = [a for a in result[0].split() if a.isalpha()]
-	if alpha_size[0] =='kB':
-		int_size[0] *=1000
-	elif(alpha_size[0] =='MB'):
-		int_size[0] *=1000000
-	elif(alpha_size[0] == 'GB'):
-		int_size[0] *=1000000000
-	return int_size[0]
+	return {'size': int(result[0]),'time_checked':datetime.now()}
+
