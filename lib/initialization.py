@@ -64,3 +64,5 @@ def create_table():
   	db.commit()
   	print 'relevant databases created successfully!'
 # (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
+
+#create snap_id

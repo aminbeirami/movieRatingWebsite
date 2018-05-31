@@ -9,6 +9,38 @@ import threading
 
 db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
+# **************************************************** SNAPSHOT CREATION FUNCTIONS ***************************************************************
+def get_snap_id():
+	sql = "SELECT NEXTVAL({0})".format('snap_id')
+	result = db.query('sql',None,'one')
+	return result[0] 
+
+def create_first_value_clause(attributes):
+	clause = ",\n".join(
+		"first_value({c}) over w as {c}".format(c=x) for x in attributes)
+	return clause
+
+def create_snapshots(rel_name,timestamp):
+	snap_id = get_snap_id()
+	snapshot_name = "{0}__{1}".format(rel_name,str(id))
+	attributes = fcn.table_attribs(rel_name)
+	f_value_clause = create_first_value_clause(attributes)
+	sql = '''
+		CREATE TABLE IF NOT EXISTS {snap_name} AS 
+		SELECT * FROM (
+			SELECT
+				id,
+				{latest_attributes},
+				first_value(__flag__) over w AS  flag
+				FROM {timeline_table}
+				WHERE __t__<= %s
+				window w AS (partition by id ORDER BY __t__ desc)) T
+	'''.format(snap_name = snapshot_name, timeline_table = 'timeline',latest_attributes = f_value_clause)
+	parameters = [timestamp,]
+	db.command(sql,parameters)
+
+# ******************************************* RANDOM INSERTION,DELETION AND UPDATE fUNCTIONS *****************************************************
+
 def random_insert(): #insrts random records to the main database
 	random_rating = randint(1,5)
 	user = fcn.random_user()
