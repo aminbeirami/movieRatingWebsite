@@ -22,8 +22,8 @@ def create_first_value_clause(attributes):
 
 def create_snapshots(rel_name,timestamp):
 	snap_id = get_snap_id()
-	snapshot_name = "{0}__{1}".format(rel_name,str(id))
-	attributes = fcn.table_attribs(rel_name)
+	snapshot_name = "{0}__{1}".format(rel_name,str(snap_id))
+	attributes = [x for x in fcn.table_attribs(rel_name) if not x == 'id']
 	f_value_clause = create_first_value_clause(attributes)
 	sql = '''
 		CREATE TABLE IF NOT EXISTS {snap_name} AS 
@@ -38,7 +38,7 @@ def create_snapshots(rel_name,timestamp):
 	'''.format(snap_name = snapshot_name, timeline_table = 'timeline',latest_attributes = f_value_clause)
 	parameters = [timestamp,]
 	db.command(sql,parameters)
-
+	db.commit()
 # ******************************************* RANDOM INSERTION,DELETION AND UPDATE fUNCTIONS *****************************************************
 
 def random_insert(): #insrts random records to the main database

@@ -19,7 +19,8 @@ app = Flask(__name__)
 
 @app.route('/', methods= ['POST','GET'])
 def main():
-	print fcn.timeline_duration()
+	rel_name = 'rating'
+	ex.create_snapshots(rel_name,'2018-04-20')
 	return render_template('index.html')
 
 app.secret_key = SECRET_KEY
