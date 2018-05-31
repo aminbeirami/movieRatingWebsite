@@ -81,3 +81,10 @@ def table_size():
 	result = db.query(sql,None,'one')
 	return {'size': int(result[0]),'time_checked':datetime.now()}
 
+def timeline_duration():
+	sql = "SELECT MAX(__t__) FROM timeline"
+	max_date = db.query(sql,None,'One')[0]
+	sql = "SELECT MAX(__t__) FROM timeline"
+	min_date = db.query(sql,None,'one')[0]
+	return {'min': min_date, 'max':max_date}
+

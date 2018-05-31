@@ -64,5 +64,13 @@ def create_table():
   	db.commit()
   	print 'relevant databases created successfully!'
 # (rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,__flag__,__t__)
-
+def create_snapshot_sequence():
+	sql = "CREATE SEQUENCE IF NOT EXISTS snap_id"
+	db.command(sql,None)
+	db.commit()
+	print 'the sanp_id sequence was created.'
+def reset_ids(id_name):
+	sql = "ALTER SEQUENCE {0} RESTART WITH 1".format(id_name)
+	db.command(sql,None)
+	print 'the id {0} is reseted.'.format(id_name)
 #create snap_id

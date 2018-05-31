@@ -11,8 +11,8 @@ db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
 # **************************************************** SNAPSHOT CREATION FUNCTIONS ***************************************************************
 def get_snap_id():
-	sql = "SELECT NEXTVAL({0})".format('snap_id')
-	result = db.query('sql',None,'one')
+	sql = "SELECT NEXTVAL('{0}')".format('snap_id')
+	result = db.query(sql,None,'one')
 	return result[0] 
 
 def create_first_value_clause(attributes):

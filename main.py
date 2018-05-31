@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 @app.route('/', methods= ['POST','GET'])
 def main():
-	# app.layout = html.Div(['This is the outermost Div'])
+	print fcn.timeline_duration()
 	return render_template('index.html')
 
 app.secret_key = SECRET_KEY
@@ -84,29 +84,30 @@ P=1
 
 #-------------------------------------- Flask-------------------------------------------------------
 
-@cron.interval_schedule(seconds=P)
-@app.route('/actions', methods = ['POST','GET'])
-def actions_json():
-	list_len = len(json_list)
-	if list_len <=10:
-		json_list.insert(0,ex.random_rating(True))
-		current_user['username'] = json_list[0]['user']
-		current_user['position']=json_list[0]['position']
-	else:
-		json_list.pop(10)
-		json_list.insert(0,ex.random_rating(True))
-		current_user['username'] = json_list[0]['user']
-		current_user['position']=json_list[0]['position']
+# @cron.interval_schedule(seconds=P)
+# @app.route('/actions', methods = ['POST','GET'])
+# def actions_json():
+# 	list_len = len(json_list)
+# 	if list_len <=10:
+# 		json_list.insert(0,ex.random_rating(True))
+# 		current_user['username'] = json_list[0]['user']
+# 		current_user['position']=json_list[0]['position']
+# 	else:
+# 		json_list.pop(10)
+# 		json_list.insert(0,ex.random_rating(True))
+# 		current_user['username'] = json_list[0]['user']
+# 		current_user['position']=json_list[0]['position']
 
-	print fcn.table_size()
-	return jsonify((json_list))
+# 	print fcn.table_size()
+# 	return jsonify((json_list))
 
 @app.route('/init')
 def initialization():
-	init.drop_tables()
-	init.drop_function()
-	init.create_table()
-	init.db_function()
+	# init.drop_tables()
+	# init.drop_function()
+	# init.create_table()
+	# init.db_function()
+	init.create_snapshot_sequence()
 	return render_template('base.html')
 @app.route('/action_table')
 def action_table():
