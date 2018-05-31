@@ -19,8 +19,11 @@ app = Flask(__name__)
 
 @app.route('/', methods= ['POST','GET'])
 def main():
-	rel_name = 'rating'
-	ex.create_snapshots(rel_name,'2018-04-20')
+	# rel_name = 'rating'
+	# ex.create_snapshots(rel_name,'2018-04-20')
+	queries = ex.random_query_generator()
+	query_number = ex.create_clusters(queries)
+	print query_number
 	return render_template('index.html')
 
 app.secret_key = SECRET_KEY
@@ -35,7 +38,7 @@ cron = Scheduler(daemon=True)
 cron.start()
 P=1
 
-#-------------------------------------- Dash -------------------------------------------------------
+#-------------------------------------- Python Dash -------------------------------------------------------
 # app = dash.Dash(__name__, server=server, url_base_app = '/dash')
 
 # #*********LIVE GRAPH USING DASH*****************

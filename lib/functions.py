@@ -5,6 +5,7 @@ from random import randint
 from lib.config import *
 from time import sleep
 from datetime import datetime
+import numpy as np
 # from lib import thread_timer as tm
 
 from threading import Event, Thread
@@ -83,8 +84,31 @@ def table_size():
 
 def timeline_duration():
 	sql = "SELECT MAX(__t__) FROM timeline"
-	max_date = db.query(sql,None,'One')[0]
-	sql = "SELECT MAX(__t__) FROM timeline"
+	max_date = db.query(sql,None,'one')[0]
+	sql = "SELECT MIN(__t__) FROM timeline"
 	min_date = db.query(sql,None,'one')[0]
 	return {'min': min_date, 'max':max_date}
 
+def calc_sec_difference(base_date, query_date):
+	second_difference = int((query_date-base_date).total_seconds())
+	return second_difference
+
+def create_query_clusters(bound,no_clusters,scale):
+	sections = int(bound/no_clusters)
+	section_bounds = []
+	lower_bound = 0
+	for i in range(1,no_clusters+1):
+		bound = lower_bound+sections
+		section_bounds.append(bound)
+		lower_bound = bound
+	queries = []
+	for i in range(no_clusters):
+		if i ==0:
+			queries.append(np.random.normal(randint(0,section_bounds[i+1]),4,scale))
+		else:
+			queries.append(np.random.normal(randint(section_bounds[i-1],section_bounds[i]),4,scale))
+	query_list=[]
+	for i in range(len(queries)):
+		for j in range(len(queries[i])):
+			query_list.append(queries[i][j])
+	return query_list

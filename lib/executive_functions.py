@@ -1,8 +1,10 @@
 from lib import functions as fcn
 from lib import postgresCon as pc
 from lib.config import *
-from random import randint
+from random import randint, randrange
 from datetime import datetime
+from sklearn.cluster import KMeans
+import datetime as dt
 import random
 import time
 import threading
@@ -90,6 +92,8 @@ def random_update():
 	user_location['long']],
 	'time':datetime.now()}
 
+# ********************************************************** SIMULATION FUNCTIONS ************************************************************
+
 def random_rating(permission):
 	random_action = randint(1,3)
 	switcher = {
@@ -105,3 +109,49 @@ def random_rating(permission):
 		else:
 			action_result = switcher[random_action]()
 	return action_result
+
+def random_query_generator():
+	fmt = '%Y-%m-%d %H:%M:%S'
+	duration = fcn.timeline_duration()
+	start = duration['min']
+	end = duration['max']
+	second_difference = fcn.calc_sec_difference(start,end)
+	query_list = fcn.create_query_clusters(second_difference,20,100)
+	random_dates = []
+	for i in range(len(query_list)):
+		random_dates.append(start + dt.timedelta(seconds = query_list[i]))
+	return random_dates
+	# print randrange(int(second_difference))
+	# curr = current + datetime.timedelta(seconds = randrange(int(second_difference)))
+
+#********************************************************* SNAPSHOT MATERIALIZATION FUNCTIONS ********************************************
+def make_query_list_2D(queries):
+	new_query_list = []
+	for i in range(len(queries)):
+		new_query_list.append((queries[i],0))
+	return new_query_list
+
+def query_clustering(queries,no_clusters):
+	kmeans = KMeans(n_clusters= no_clusters, init = 'k-means++',max_iter = 300, n_init = 10, random_state = 0)
+	y_kmeans = kmeans.fit_predict(queries)
+	return y_kmeans, kmeans.cluster_centers_
+
+def recommend_no_clusters(query_data,max_snapshot): #elbow method in clustering
+	cost = []
+	for i in range(1,max_snapshot+1):
+		kmeans = KMeans(n_clusters = i, init = 'k-means++', max_iter = 300, n_init = 10, random_state = 0)
+		y_kmeans = kmeans.fit_predict(query_data)
+		cost.append(kmeans.inertia_)
+	return cost
+
+def create_clusters(query_list):
+	duration = fcn.timeline_duration()
+	query_date_to_number = []
+	for i in range(len(query_list)):
+		query_date_to_number.append(fcn.calc_sec_difference(duration['min'],query_list[i]))
+	query_list_2D = make_query_list_2D(query_date_to_number)
+	recommended = recommend_no_clusters(query_list_2D,10)
+	clustered_list,centroids = query_clustering(query_list_2D,6)
+	print clustered_list
+	print centroids
+	
