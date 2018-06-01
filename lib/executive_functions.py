@@ -11,6 +11,7 @@ import time
 import threading
 
 db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
+clsuter_info = {'clusters':[],'snapshots':[]}
 
 # **************************************************** SNAPSHOT CREATION FUNCTIONS ***************************************************************
 def get_snap_id():
@@ -126,7 +127,7 @@ def random_query_generator():
 	# print randrange(int(second_difference))
 	# curr = current + datetime.timedelta(seconds = randrange(int(second_difference)))
 
-#********************************************************* SNAPSHOT MATERIALIZATION FUNCTIONS ********************************************
+#********************************************************* CLUSTERING FUNCTIONS ***********************************************************
 def make_query_list_2D(queries):
 	new_query_list = []
 	queries = sorted(queries)
@@ -179,8 +180,31 @@ def create_clusters(query_list):
 	recommended = recommend_no_clusters(query_list_2D,10) #elbow method to find the optimal snapshot numbers
 	clustered_list,centroids = query_clustering(query_list_2D,6)
 	query_clusters,snapshot_positions = fetch_clustered_info(query_list_2D,clustered_list,6,duration['min'])
-	print query_clusters
-	print snapshot_positions
+	clsuter_info['clusters'] = query_clusters
+	clsuter_info['snapshots'] = snapshot_positions
+	return clsuter_info
 	# snapshot_positions_seconds = optimal_snap_positions(query_clusters,duration['min'])
 	# for i in range(len(clustered_list)):
 	# 	print clustered_list[i]
+
+#*********************************************** SNAPSHOT MATERIALIZATION FUNCTIONS *************************************************
+
+def snapshot_materialization():
+	attributes = [x for x in fcn.table_attribs('rating') if not x == 'id']
+	f_value_clause = create_first_value_clause(attributes)
+	sql = 'DROP TABLE IF EXISTS amin'
+	db.command(sql,None)
+	db.commit()
+	sql = '''
+	CREATE TABLE IF NOT EXISTS amin AS
+	SELECT * FROM (
+		SELECT id,
+		{latest_attributes},
+		first_value(__flag__) over w AS  flag
+		FROM {timeline_table}
+		WHERE __t__ BETWEEN %s AND %s
+		window w AS (partition by id ORDER BY __t__ desc)) T
+	'''.format(timeline_table = 'timeline',latest_attributes = f_value_clause)
+	attributes = ['2018-05-29','2018-05-31']
+	db.command(sql,attributes)
+	db.commit()

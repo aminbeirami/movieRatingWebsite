@@ -21,8 +21,7 @@ def main():
 	# rel_name = 'rating'
 	# ex.create_snapshots(rel_name,'2018-04-20')
 	queries = ex.random_query_generator()
-	query_number = ex.create_clusters(queries)
-	print query_number
+	query_number = ex.snapshot_materialization()
 	return render_template('index.html')
 
 app.secret_key = SECRET_KEY
