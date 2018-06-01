@@ -16,7 +16,6 @@ from collections import deque
 
 
 app = Flask(__name__)
-
 @app.route('/', methods= ['POST','GET'])
 def main():
 	# rel_name = 'rating'

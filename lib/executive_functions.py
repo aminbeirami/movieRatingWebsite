@@ -5,6 +5,7 @@ from random import randint, randrange
 from datetime import datetime
 from sklearn.cluster import KMeans
 import datetime as dt
+import numpy as np
 import random
 import time
 import threading
@@ -120,6 +121,7 @@ def random_query_generator():
 	random_dates = []
 	for i in range(len(query_list)):
 		random_dates.append(start + dt.timedelta(seconds = query_list[i]))
+		# random_dates.append(fcn.calc_time_from_seconds(start,query_list[i]))
 	return random_dates
 	# print randrange(int(second_difference))
 	# curr = current + datetime.timedelta(seconds = randrange(int(second_difference)))
@@ -127,13 +129,32 @@ def random_query_generator():
 #********************************************************* SNAPSHOT MATERIALIZATION FUNCTIONS ********************************************
 def make_query_list_2D(queries):
 	new_query_list = []
+	queries = sorted(queries)
 	for i in range(len(queries)):
 		new_query_list.append((queries[i],0))
 	return new_query_list
 
+def optimal_snap_positions(query_clusters,base_date):
+	snapshot_positions = []
+	print query_clusters
+	for i in range(len(query_clusters)):
+		snapshot_positions.append(fcn.calc_time_from_seconds(np.median(query_clusters[i],base_date)))
+	return snapshot_positions
+
+def fetch_clustered_info(queries,clusters,no_clusters):
+	cluster_of_queries = []
+	for i in range(no_clusters):
+		cluster_of_queries.append([])
+	for j in range(no_clusters):
+		for s in range(len(queries)):
+			if clusters[s] == j:
+				cluster_of_queries[j].append(queries[s][0])
+	return	cluster_of_queries,
+
 def query_clustering(queries,no_clusters):
 	kmeans = KMeans(n_clusters= no_clusters, init = 'k-means++',max_iter = 300, n_init = 10, random_state = 0)
 	y_kmeans = kmeans.fit_predict(queries)
+	print y_kmeans
 	return y_kmeans, kmeans.cluster_centers_
 
 def recommend_no_clusters(query_data,max_snapshot): #elbow method in clustering
@@ -145,13 +166,17 @@ def recommend_no_clusters(query_data,max_snapshot): #elbow method in clustering
 	return cost
 
 def create_clusters(query_list):
+	cluster_dates = []
+	snapshot_positions_date = []
 	duration = fcn.timeline_duration()
-	query_date_to_number = []
+	query_in_seconds = []
 	for i in range(len(query_list)):
-		query_date_to_number.append(fcn.calc_sec_difference(duration['min'],query_list[i]))
-	query_list_2D = make_query_list_2D(query_date_to_number)
-	recommended = recommend_no_clusters(query_list_2D,10)
+		query_in_seconds.append(fcn.calc_sec_difference(duration['min'],query_list[i]))
+	query_list_2D = make_query_list_2D(query_in_seconds)
+	recommended = recommend_no_clusters(query_list_2D,10) #elbow method to find the optimal snapshot numbers
 	clustered_list,centroids = query_clustering(query_list_2D,6)
-	print clustered_list
-	print centroids
-	
+	query_clusters = fetch_clustered_info(query_list_2D,clustered_list,6)
+	# snapshot_positions_seconds = optimal_snap_positions(query_clusters,duration['min'])
+	print query_clusters[0]
+	# for i in range(len(clustered_list)):
+	# 	print clustered_list[i]

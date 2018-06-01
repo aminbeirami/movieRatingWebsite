@@ -4,7 +4,7 @@ from lib import keyGen as kg
 from random import randint
 from lib.config import *
 from time import sleep
-from datetime import datetime
+from datetime import datetime,timedelta
 import numpy as np
 # from lib import thread_timer as tm
 
@@ -93,6 +93,10 @@ def calc_sec_difference(base_date, query_date):
 	second_difference = int((query_date-base_date).total_seconds())
 	return second_difference
 
+def calc_time_from_seconds(query_seconds,base_date):
+	return base_date + timedelta(seconds = query_seconds)
+
+
 def create_query_clusters(bound,no_clusters,scale):
 	sections = int(bound/no_clusters)
 	section_bounds = []
@@ -111,4 +115,4 @@ def create_query_clusters(bound,no_clusters,scale):
 	for i in range(len(queries)):
 		for j in range(len(queries[i])):
 			query_list.append(queries[i][j])
-	return query_list
+	return sorted(query_list)
