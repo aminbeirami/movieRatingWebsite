@@ -136,20 +136,23 @@ def make_query_list_2D(queries):
 
 def optimal_snap_positions(query_clusters,base_date):
 	snapshot_positions = []
-	print query_clusters
 	for i in range(len(query_clusters)):
-		snapshot_positions.append(fcn.calc_time_from_seconds(np.median(query_clusters[i],base_date)))
-	return snapshot_positions
+		snapshot_positions.append(fcn.calc_time_from_seconds(np.median(query_clusters[i]),base_date))
+	return sorted(snapshot_positions)
 
-def fetch_clustered_info(queries,clusters,no_clusters):
-	cluster_of_queries = []
+def fetch_clustered_info(queries,clusters,no_clusters,base_date):
+	cluster_of_queries_sec = []
+	cluster_of_queries_date = []
 	for i in range(no_clusters):
-		cluster_of_queries.append([])
+		cluster_of_queries_sec.append([])
+		cluster_of_queries_date.append([])
 	for j in range(no_clusters):
 		for s in range(len(queries)):
 			if clusters[s] == j:
-				cluster_of_queries[j].append(queries[s][0])
-	return	cluster_of_queries,
+				cluster_of_queries_sec[j].append(queries[s][0])
+				cluster_of_queries_date[j].append(fcn.calc_time_from_seconds(queries[s][0],base_date))
+	snapshot_positions = optimal_snap_positions(cluster_of_queries_sec,base_date)
+	return	cluster_of_queries_date,snapshot_positions
 
 def query_clustering(queries,no_clusters):
 	kmeans = KMeans(n_clusters= no_clusters, init = 'k-means++',max_iter = 300, n_init = 10, random_state = 0)
@@ -175,8 +178,9 @@ def create_clusters(query_list):
 	query_list_2D = make_query_list_2D(query_in_seconds)
 	recommended = recommend_no_clusters(query_list_2D,10) #elbow method to find the optimal snapshot numbers
 	clustered_list,centroids = query_clustering(query_list_2D,6)
-	query_clusters = fetch_clustered_info(query_list_2D,clustered_list,6)
+	query_clusters,snapshot_positions = fetch_clustered_info(query_list_2D,clustered_list,6,duration['min'])
+	print query_clusters
+	print snapshot_positions
 	# snapshot_positions_seconds = optimal_snap_positions(query_clusters,duration['min'])
-	print query_clusters[0]
 	# for i in range(len(clustered_list)):
 	# 	print clustered_list[i]
