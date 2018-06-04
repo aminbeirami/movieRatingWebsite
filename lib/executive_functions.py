@@ -192,7 +192,7 @@ def create_clusters(query_list):
 
 #*********************************************** SNAPSHOT MATERIALIZATION FUNCTIONS *************************************************
 
-def snapshot_materialization(rel_name, start_date,end_date,type):
+def choose_names(type):
 	if type = 'query':
 		snapshot_name = 'query__{0}'.format(query_id)
 		temp_snapshot_name = 'temp__{0}'.format(query_id)
@@ -202,14 +202,10 @@ def snapshot_materialization(rel_name, start_date,end_date,type):
 		temp_snapshot_name = "temp_{0}__{1}".format(rel_name,str(snap_id))
 	else:
 		print 'invalid request'
+	return snapshot_name,temp_snapshot_name
 
-	attributes = [x for x in fcn.table_attribs('rating') if not x == 'id']
-	f_value_clause = create_first_value_clause(attributes)
-	temp_snapshot_name = 'temp_snap'
-	sql = 'DROP TABLE IF EXISTS {temp}'.format(temp = temp_snapshot_name)
-	db.command(sql,None)
-	db.commit()
-	# creates a sapshot which contains the records of materialized snapshot and the new snapshot in a temporary table
+
+def union_snapshot_and_query(temp_snapshot_name,timeline_table,latest_attributes):
 	sql = '''
 	CREATE TABLE IF NOT EXISTS {temp} AS
 	SELECT DISTINCT * FROM (
@@ -226,7 +222,8 @@ def snapshot_materialization(rel_name, start_date,end_date,type):
 	attributes = [start_date,end_date]
 	db.command(sql,attributes)
 	db.commit()
-	# removes records that have been deleted from temporary table and creats a permenant table
+
+def snap_query_table_creation(new_snapshot,latest_attributes,temp_snapshot_name):
 	sql = '''
 	CREATE TABLE IF NOT EXISTS {new_snapshot} AS
 	SELECT DISTINCT * FROM (
@@ -239,7 +236,17 @@ def snapshot_materialization(rel_name, start_date,end_date,type):
 	'''.format(new_snapshot = snapshot_name, latest_attributes = f_value_clause, temp_snapshot = temp_snapshot_name)
 	db.command(sql,None)
 	db.commit()
+
+
+def snapshot_materialization(rel_name, start_date,end_date,type):
+	snapshot_name,temp_snapshot_name = choose_names(type)
+	attributes = [x for x in fcn.table_attribs('rating') if not x == 'id']
+	f_value_clause = create_first_value_clause(attributes)
+	temp_snapshot_name = 'temp_snap'
+	fcn.drop_table(temp_snapshot_name)
+	# creates a sapshot which contains the records of materialized snapshot and the new snapshot in a temporary table
+	union_snapshot_and_query(temp_snapshot_name,timeline_table,latest_attributes)
+	# removes records that have been deleted from temporary table and creats a permenant table
+	snap_query_table_creation(new_snapshot,latest_attributes,temp_snapshot_name)
 	# drops the temporary table
-	sql = 'DROP TABLE IF EXISTS {temp_snapshot}'.format(temp_snapshot = temp_snapshot_name)
-	db,command(sql,None)
-	db.commit
+	fcn.drop_table(temp_snapshot_name)

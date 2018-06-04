@@ -21,7 +21,12 @@ def call_repeatedly(interval, func, *args):
 
 db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
-
+def drop_table(name):
+	sql = 'DROP TABLE IF EXISTS {0}'.format(name)
+	db.command(sql)
+	db.commit()
+	
+	print 'table {0} was dropped!'.format(name)
 def table_attribs(table_name):
 	sql = "SELECT column_name FROM information_schema.columns WHERE table_name = %s"
 	parameters = (table_name,)
