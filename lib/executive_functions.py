@@ -20,8 +20,7 @@ def get_snap_id():
 	return result[0] 
 
 def create_first_value_clause(attributes):
-	clause = ",\n".join(
-		"first_value({c}) over w as {c}".format(c=x) for x in attributes)
+	clause = ",\n".join("first_value({c}) over w as {c}".format(c=x) for x in attributes)
 	return clause
 
 def create_snapshots(rel_name,timestamp):
@@ -30,16 +29,26 @@ def create_snapshots(rel_name,timestamp):
 	attributes = [x for x in fcn.table_attribs(rel_name) if not x == 'id']
 	f_value_clause = create_first_value_clause(attributes)
 	sql = '''
-		CREATE TABLE IF NOT EXISTS {snap_name} AS 
-		SELECT * FROM (
-			SELECT
-				id,
-				{latest_attributes},
-				first_value(__flag__) over w AS  flag
-				FROM {timeline_table}
-				WHERE __t__<= %s
-				window w AS (partition by id ORDER BY __t__ desc)) T
-	'''.format(snap_name = snapshot_name, timeline_table = 'timeline',latest_attributes = f_value_clause)
+	 	CREATE TABLE IF NOT EXISTS {snap_name} AS 
+	 	SELECT DISTINCT * FROM (
+	 		SELECT
+	 			rec_id,
+	 			{latest_attributes},
+	 			first_value(__flag__) over w AS  flag
+	 			FROM {timeline_table}
+	 			WHERE __t__<= %s AND __flag__ =0
+	 			window w AS (partition by rec_id ORDER BY __t__ DESC)) T
+	 '''.format(snap_name = snapshot_name, timeline_table = 'timeline',latest_attributes = f_value_clause)
+	# sql = '''
+	# 	CREATE TABLE IF NOT EXISTS {snap_name} AS
+	# 	SELECT DISTINCT
+	# 		rec_id,
+	# 		{latest_attributes},
+	# 		firs_value(__flag__) OVER (PARTITION BY rec_id) AS __flag__
+	# 		FROM {timeline_table} WHERE __flag__ = 0 AND __t__ <= (%s) ORDER BY __t__ DESC
+	# 		WINDOW w AS (PARTITION BY rec_id)
+	# '''.format(snap_name = snapshot_name,timeline_table = 'timeline', latest_attributes = f_value_clause )
+
 	parameters = [timestamp,]
 	db.command(sql,parameters)
 	db.commit()
@@ -192,18 +201,37 @@ def create_clusters(query_list):
 def snapshot_materialization():
 	attributes = [x for x in fcn.table_attribs('rating') if not x == 'id']
 	f_value_clause = create_first_value_clause(attributes)
-	sql = 'DROP TABLE IF EXISTS amin'
+	sql = 'DROP TABLE IF EXISTS amin2'
 	db.command(sql,None)
 	db.commit()
+	# sql = '''
+	# CREATE TABLE IF NOT EXISTS amin2 AS
+	# (SELECT id,
+	# {latest_attributes},
+	# first_value(__flag__) over s AS flag
+	# FROM (
+	# SELECT * FROM (
+	# 	SELECT id,
+	# 	{latest_attributes},
+	# 	first_value(__flag__) over w AS  flag
+	# 	FROM {timeline_table}
+	# 	WHERE __t__ BETWEEN %s AND %s
+	# 	window w AS (partition by id ORDER BY __t__ desc)) T
+	# UNION ALL
+	# SELECT * FROM rating__9)
+	# window s AS (parition by id ORDER BY __t__ DESC)) as foo
+	# '''.format(timeline_table = 'timeline',latest_attributes = f_value_clause)
 	sql = '''
-	CREATE TABLE IF NOT EXISTS amin AS
+	CREATE TABLE IF NOT EXISTS amin2 AS
 	SELECT * FROM (
-		SELECT id,
+		SELECT rec_id,
 		{latest_attributes},
 		first_value(__flag__) over w AS  flag
 		FROM {timeline_table}
 		WHERE __t__ BETWEEN %s AND %s
-		window w AS (partition by id ORDER BY __t__ desc)) T
+		window w AS (partition by rec_id ORDER BY __t__ desc)) AS T where flag = 0
+	UNION ALL
+	SELECT * FROM rating__9
 	'''.format(timeline_table = 'timeline',latest_attributes = f_value_clause)
 	attributes = ['2018-05-29','2018-05-31']
 	db.command(sql,attributes)
