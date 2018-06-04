@@ -1,3 +1,4 @@
+# BY AMIN BEIRAMI -- REGULAR FUNCTIONS
 from lib import postgresCon as pc
 import functools
 from lib import keyGen as kg

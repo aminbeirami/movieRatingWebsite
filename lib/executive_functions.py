@@ -1,3 +1,5 @@
+#BY AMIN BEIRAMI -- beirami.m.a@gmail.com
+#EXECUTIVE FUNCTIONS
 from lib import functions as fcn
 from lib import postgresCon as pc
 from lib.config import *
@@ -34,20 +36,12 @@ def create_snapshots(rel_name,timestamp):
 	 		SELECT
 	 			rec_id,
 	 			{latest_attributes},
-	 			first_value(__flag__) over w AS  flag
+	 			max(__t__) OVER w AS __t__,
+	 			first_value(__flag__) over w AS  flag,
 	 			FROM {timeline_table}
 	 			WHERE __t__<= %s AND __flag__ =0
 	 			window w AS (partition by rec_id ORDER BY __t__ DESC)) T
 	 '''.format(snap_name = snapshot_name, timeline_table = 'timeline',latest_attributes = f_value_clause)
-	# sql = '''
-	# 	CREATE TABLE IF NOT EXISTS {snap_name} AS
-	# 	SELECT DISTINCT
-	# 		rec_id,
-	# 		{latest_attributes},
-	# 		firs_value(__flag__) OVER (PARTITION BY rec_id) AS __flag__
-	# 		FROM {timeline_table} WHERE __flag__ = 0 AND __t__ <= (%s) ORDER BY __t__ DESC
-	# 		WINDOW w AS (PARTITION BY rec_id)
-	# '''.format(snap_name = snapshot_name,timeline_table = 'timeline', latest_attributes = f_value_clause )
 
 	parameters = [timestamp,]
 	db.command(sql,parameters)
@@ -198,41 +192,54 @@ def create_clusters(query_list):
 
 #*********************************************** SNAPSHOT MATERIALIZATION FUNCTIONS *************************************************
 
-def snapshot_materialization():
+def snapshot_materialization(rel_name, start_date,end_date,type):
+	if type = 'query':
+		snapshot_name = 'query__{0}'.format(query_id)
+		temp_snapshot_name = 'temp__{0}'.format(query_id)
+	elif type = 'snapshot':
+		snap_id = get_snap_id()
+		snapshot_name = "{0}__{1}".format(rel_name,str(snap_id))
+		temp_snapshot_name = "temp_{0}__{1}".format(rel_name,str(snap_id))
+	else:
+		print 'invalid request'
+
 	attributes = [x for x in fcn.table_attribs('rating') if not x == 'id']
 	f_value_clause = create_first_value_clause(attributes)
-	sql = 'DROP TABLE IF EXISTS amin2'
+	temp_snapshot_name = 'temp_snap'
+	sql = 'DROP TABLE IF EXISTS {temp}'.format(temp = temp_snapshot_name)
 	db.command(sql,None)
 	db.commit()
-	# sql = '''
-	# CREATE TABLE IF NOT EXISTS amin2 AS
-	# (SELECT id,
-	# {latest_attributes},
-	# first_value(__flag__) over s AS flag
-	# FROM (
-	# SELECT * FROM (
-	# 	SELECT id,
-	# 	{latest_attributes},
-	# 	first_value(__flag__) over w AS  flag
-	# 	FROM {timeline_table}
-	# 	WHERE __t__ BETWEEN %s AND %s
-	# 	window w AS (partition by id ORDER BY __t__ desc)) T
-	# UNION ALL
-	# SELECT * FROM rating__9)
-	# window s AS (parition by id ORDER BY __t__ DESC)) as foo
-	# '''.format(timeline_table = 'timeline',latest_attributes = f_value_clause)
+	# creates a sapshot which contains the records of materialized snapshot and the new snapshot in a temporary table
 	sql = '''
-	CREATE TABLE IF NOT EXISTS amin2 AS
-	SELECT * FROM (
+	CREATE TABLE IF NOT EXISTS {temp} AS
+	SELECT DISTINCT * FROM (
 		SELECT rec_id,
 		{latest_attributes},
+		max(__t__) OVER w AS __t__,
 		first_value(__flag__) over w AS  flag
 		FROM {timeline_table}
-		WHERE __t__ BETWEEN %s AND %s
-		window w AS (partition by rec_id ORDER BY __t__ desc)) AS T where flag = 0
-	UNION ALL
-	SELECT * FROM rating__9
-	'''.format(timeline_table = 'timeline',latest_attributes = f_value_clause)
-	attributes = ['2018-05-29','2018-05-31']
+		WHERE (__t__ BETWEEN %s AND %s) AND __flag__ = 0
+		window w AS (partition by rec_id ORDER BY __t__ DESC)) T
+		UNION ALL
+		SELECT * FROM {materialized_snapshot}
+	'''.format(temp =temp_snapshot_name ,timeline_table = 'timeline',latest_attributes = f_value_clause)
+	attributes = [start_date,end_date]
 	db.command(sql,attributes)
 	db.commit()
+	# removes records that have been deleted from temporary table and creats a permenant table
+	sql = '''
+	CREATE TABLE IF NOT EXISTS {new_snapshot} AS
+	SELECT DISTINCT * FROM (
+		SELECT rec_id,
+		{latest_attributes},
+		first_value(__flag__) over w AS flag
+		FROM {temp_snapshot}
+		window w AS (partition by rec_id ORDER BY __t__ DESC)
+	)
+	'''.format(new_snapshot = snapshot_name, latest_attributes = f_value_clause, temp_snapshot = temp_snapshot_name)
+	db.command(sql,None)
+	db.commit()
+	# drops the temporary table
+	sql = 'DROP TABLE IF EXISTS {temp_snapshot}'.format(temp_snapshot = temp_snapshot_name)
+	db,command(sql,None)
+	db.commit

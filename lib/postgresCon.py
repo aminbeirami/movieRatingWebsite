@@ -1,3 +1,4 @@
+# BY AMIN BEIRAMI -- DATABASE CONNECTIONS
 import psycopg2 as pg
 import functools
 import os
