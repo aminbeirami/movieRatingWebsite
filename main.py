@@ -4,7 +4,7 @@ import atexit
 # import dash_html_components as html
 # import dash_core_components as dcc
 # import plotly.graph_objs as go
-from dash.dependencies import Input,Output,State, Event
+# from dash.dependencies import Input,Output,State, Event
 from apscheduler.scheduler import Scheduler
 from flask import Flask, render_template, session, request, flash, redirect, url_for,jsonify,make_response
 from lib.config import *
@@ -18,12 +18,12 @@ from collections import deque
 app = Flask(__name__)
 @app.route('/', methods= ['POST','GET'])
 def main():
-	# rel_name = 'rating'
+	rel_name = 'rating'
 	# ex.create_snapshots(rel_name,'2018-04-20')
 	queries = ex.random_query_generator()
-	# ex.create_snapshots('rating','2018-05-28')
+	# ex.create_snapshots('rating','2018-05-24')
 	# query_number = ex.snapshot_materialization()
-	ex.snapshot_materialization()
+	ex.snapshot_materialization('snapshot',rel_name,'timeline','2018-06-1','rating__52')
 	return render_template('index.html')
 
 app.secret_key = SECRET_KEY

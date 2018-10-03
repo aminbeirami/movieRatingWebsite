@@ -37,13 +37,14 @@ def create_snapshots(rel_name,timestamp):
 	 			rec_id,
 	 			{latest_attributes},
 	 			max(__t__) OVER w AS __t__,
-	 			first_value(__flag__) over w AS  flag,
+	 			first_value(__flag__) over w AS  flag
 	 			FROM {timeline_table}
 	 			WHERE __t__<= %s AND __flag__ =0
 	 			window w AS (partition by rec_id ORDER BY __t__ DESC)) T
 	 '''.format(snap_name = snapshot_name, timeline_table = 'timeline',latest_attributes = f_value_clause)
 
 	parameters = [timestamp,]
+	print sql
 	db.command(sql,parameters)
 	db.commit()
 # ******************************************* RANDOM INSERTION,DELETION AND UPDATE fUNCTIONS *****************************************************
@@ -117,7 +118,7 @@ def random_rating(permission):
 
 def random_query_generator():
 	fmt = '%Y-%m-%d %H:%M:%S'
-	duration = fcn.timeline_duration()
+	duration = fcn.table_duration('timeline')
 	start = duration['min']
 	end = duration['max']
 	second_difference = fcn.calc_sec_difference(start,end)
@@ -175,7 +176,7 @@ def recommend_no_clusters(query_data,max_snapshot): #elbow method in clustering
 def create_clusters(query_list):
 	cluster_dates = []
 	snapshot_positions_date = []
-	duration = fcn.timeline_duration()
+	duration = fcn.table_duration('timeline')
 	query_in_seconds = []
 	for i in range(len(query_list)):
 		query_in_seconds.append(fcn.calc_sec_difference(duration['min'],query_list[i]))
@@ -192,11 +193,11 @@ def create_clusters(query_list):
 
 #*********************************************** SNAPSHOT MATERIALIZATION FUNCTIONS *************************************************
 
-def choose_names(type):
-	if type = 'query':
+def choose_names(type,rel_name):
+	if type == 'query':
 		snapshot_name = 'query__{0}'.format(query_id)
 		temp_snapshot_name = 'temp__{0}'.format(query_id)
-	elif type = 'snapshot':
+	elif type == 'snapshot':
 		snap_id = get_snap_id()
 		snapshot_name = "{0}__{1}".format(rel_name,str(snap_id))
 		temp_snapshot_name = "temp_{0}__{1}".format(rel_name,str(snap_id))
@@ -205,7 +206,8 @@ def choose_names(type):
 	return snapshot_name,temp_snapshot_name
 
 
-def union_snapshot_and_query(temp_snapshot_name,timeline_table,latest_attributes):
+def union_snapshot_and_query(temp_snapshot_name,timeline_table,f_value_clause,query_timestamp,materialized):
+	start_timestamp = fcn.table_duration(materialized)['max']
 	sql = '''
 	CREATE TABLE IF NOT EXISTS {temp} AS
 	SELECT DISTINCT * FROM (
@@ -218,35 +220,41 @@ def union_snapshot_and_query(temp_snapshot_name,timeline_table,latest_attributes
 		window w AS (partition by rec_id ORDER BY __t__ DESC)) T
 		UNION ALL
 		SELECT * FROM {materialized_snapshot}
-	'''.format(temp =temp_snapshot_name ,timeline_table = 'timeline',latest_attributes = f_value_clause)
-	attributes = [start_date,end_date]
+	'''.format(temp =temp_snapshot_name,
+		timeline_table = 'timeline',
+		latest_attributes = f_value_clause, 
+		materialized_snapshot = materialized)
+	print sql
+	attributes = [start_timestamp,query_timestamp]
 	db.command(sql,attributes)
 	db.commit()
 
-def snap_query_table_creation(new_snapshot,latest_attributes,temp_snapshot_name):
+def snap_query_table_creation(snapshot_name,f_value_clause,temp_snapshot_name):
 	sql = '''
 	CREATE TABLE IF NOT EXISTS {new_snapshot} AS
 	SELECT DISTINCT * FROM (
 		SELECT rec_id,
 		{latest_attributes},
-		first_value(__flag__) over w AS flag
+		max(__t__) OVER w as __t__,
+		first_value(flag) over w AS flag
 		FROM {temp_snapshot}
-		window w AS (partition by rec_id ORDER BY __t__ DESC)
-	)
-	'''.format(new_snapshot = snapshot_name, latest_attributes = f_value_clause, temp_snapshot = temp_snapshot_name)
+		window w AS (partition by rec_id ORDER BY __t__ DESC)) T
+	'''.format(new_snapshot = snapshot_name, 
+		latest_attributes = f_value_clause, 
+		temp_snapshot = temp_snapshot_name)
 	db.command(sql,None)
 	db.commit()
 
 
-def snapshot_materialization(rel_name, start_date,end_date,type):
-	snapshot_name,temp_snapshot_name = choose_names(type)
+
+def snapshot_materialization(type,rel_name,timeline_table,query_time,materialized):
+	snapshot_name,temp_snapshot_name = choose_names(type,rel_name)
 	attributes = [x for x in fcn.table_attribs('rating') if not x == 'id']
 	f_value_clause = create_first_value_clause(attributes)
-	temp_snapshot_name = 'temp_snap'
 	fcn.drop_table(temp_snapshot_name)
-	# creates a sapshot which contains the records of materialized snapshot and the new snapshot in a temporary table
-	union_snapshot_and_query(temp_snapshot_name,timeline_table,latest_attributes)
-	# removes records that have been deleted from temporary table and creats a permenant table
-	snap_query_table_creation(new_snapshot,latest_attributes,temp_snapshot_name)
-	# drops the temporary table
+# 	# creates a sapshot which contains the records of materialized snapshot and the new snapshot in a temporary table
+	union_snapshot_and_query(temp_snapshot_name,timeline_table,f_value_clause,query_time,materialized)
+# 	# removes records that have been deleted from temporary table and creats a permenant table
+	snap_query_table_creation(snapshot_name,f_value_clause,temp_snapshot_name)
+# 	# drops the temporary table
 	fcn.drop_table(temp_snapshot_name)

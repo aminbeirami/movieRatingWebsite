@@ -23,7 +23,7 @@ db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
 def drop_table(name):
 	sql = 'DROP TABLE IF EXISTS {0}'.format(name)
-	db.command(sql)
+	db.command(sql,None)
 	db.commit()
 	
 	print 'table {0} was dropped!'.format(name)
@@ -88,10 +88,10 @@ def table_size():
 	result = db.query(sql,None,'one')
 	return {'size': int(result[0]),'time_checked':datetime.now()}
 
-def timeline_duration():
-	sql = "SELECT MAX(__t__) FROM timeline"
+def table_duration(table_name):
+	sql = "SELECT MAX(__t__) FROM {0}".format(table_name)
 	max_date = db.query(sql,None,'one')[0]
-	sql = "SELECT MIN(__t__) FROM timeline"
+	sql = "SELECT MIN(__t__) FROM {0}".format(table_name)
 	min_date = db.query(sql,None,'one')[0]
 	return {'min': min_date, 'max':max_date}
 
