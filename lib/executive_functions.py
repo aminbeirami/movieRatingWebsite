@@ -22,7 +22,8 @@ def get_snap_id():
 	return result[0] 
 
 def create_first_value_clause(attributes):
-	clause = ",\n".join("first_value({c}) over w as {c}".format(c=x) for x in attributes)
+	# clause = ",\n".join("first_value({c}) over w as {c}".format(c=x) for x in attributes)
+	clause = ",\n".join("last_value({c}) over (partition by rec_id order by __t__ RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as {c}".format(c=x) for x in attributes)
 	return clause
 
 def create_snapshots(rel_name,timestamp):
@@ -30,18 +31,28 @@ def create_snapshots(rel_name,timestamp):
 	snapshot_name = "{0}__{1}".format(rel_name,str(snap_id))
 	attributes = [x for x in fcn.table_attribs(rel_name) if not x == 'id']
 	f_value_clause = create_first_value_clause(attributes)
+
 	sql = '''
-	 	CREATE TABLE IF NOT EXISTS {snap_name} AS 
-	 	SELECT DISTINCT * FROM (
-	 		SELECT
-	 			rec_id,
-	 			{latest_attributes},
-	 			max(__t__) OVER w AS __t__,
-	 			first_value(__flag__) over w AS  flag
-	 			FROM {timeline_table}
-	 			WHERE __t__<= %s AND __flag__ =0
-	 			window w AS (partition by rec_id ORDER BY __t__ DESC)) T
-	 '''.format(snap_name = snapshot_name, timeline_table = 'timeline',latest_attributes = f_value_clause)
+	CREATE TABLE IF NOT EXISTS {snap_name} AS
+	SELECT DISTINCT
+	rec_id,
+	{latest_attributes},
+	max(__t__) OVER (PARTITION BY rec_id) AS __t__
+	FROM {timeline_table}
+	WHERE __flag__=0 AND __t__ <=%s
+	'''.format(snap_name = snapshot_name, latest_attributes = f_value_clause,timeline_table = 'timeline')
+	# sql = '''
+	#  	CREATE TABLE IF NOT EXISTS {snap_name} AS 
+	#  	SELECT DISTINCT * FROM (
+	#  		SELECT
+	#  			rec_id,
+	#  			{latest_attributes},
+	#  			max(__t__) OVER w AS __t__,
+	#  			first_value(__flag__) over w AS  flag
+	#  			FROM {timeline_table}
+	#  			WHERE __t__<= %s AND __flag__ =0
+	#  			window w AS (partition by rec_id ORDER BY __t__ DESC)) T
+	#  '''.format(snap_name = snapshot_name, timeline_table = 'timeline',latest_attributes = f_value_clause)
 
 	parameters = [timestamp,]
 	print sql

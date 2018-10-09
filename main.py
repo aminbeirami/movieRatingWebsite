@@ -18,12 +18,13 @@ from collections import deque
 app = Flask(__name__)
 @app.route('/', methods= ['POST','GET'])
 def main():
-	rel_name = 'rating'
-	# ex.create_snapshots(rel_name,'2018-04-20')
-	queries = ex.random_query_generator()
+	init.init_everything()
+	# rel_name = 'rating'
+	# ex.create_snapshots(rel_name,'2018-05-31')
+	# queries = ex.random_query_generator()
 	# ex.create_snapshots('rating','2018-05-24')
 	# query_number = ex.snapshot_materialization()
-	ex.snapshot_materialization('snapshot',rel_name,'timeline','2018-06-1','rating__52')
+	# ex.snapshot_materialization('snapshot',rel_name,'timeline','2018-06-1','rating__52')
 	return render_template('index.html')
 
 app.secret_key = SECRET_KEY
@@ -104,15 +105,17 @@ P=1
 
 # 	print fcn.table_size()
 # 	return jsonify((json_list))
-
+# @cron.interval_schedule(seconds =P)
 @app.route('/init')
 def initialization():
+	ex.random_rating(True)
 	# init.drop_tables()
 	# init.drop_function()
 	# init.create_table()
 	# init.db_function()
-	init.create_snapshot_sequence()
+	# init.create_snapshot_sequence()
 	return render_template('base.html')
+
 @app.route('/action_table')
 def action_table():
 	return render_template('table.html')
