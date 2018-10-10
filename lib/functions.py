@@ -25,8 +25,8 @@ def drop_table(name):
 	sql = 'DROP TABLE IF EXISTS {0}'.format(name)
 	db.command(sql,None)
 	db.commit()
-	
 	print 'table {0} was dropped!'.format(name)
+	
 def table_attribs(table_name):
 	sql = "SELECT column_name FROM information_schema.columns WHERE table_name = %s"
 	parameters = (table_name,)
@@ -50,6 +50,12 @@ def fetch_specific_attribs_record(attribs,table_name,condition):
 	rec_dictionary = fetch_everything_record(table_name,condition)
 	for i in attribs:
 		result[i]=rec_dictionary[i]
+	return result
+
+def fetch_specific_record_list(attribs,table_name,condition):
+	attribs = ','.join(attribs)
+	sql = "SELECT {0} FROM {1} {2}".format(attribs,table_name,condition)
+	result = db.query(sql,None,'one')
 	return result
 
 def records_count(table_name): # returns number of movies in the database
@@ -78,10 +84,17 @@ def insert_parameters(user,movie,rating):
 
 def create_signature(raw_parameters,username):
 	key = fetch_specific_attribs_record(['private_key',],'users',"where username = '{0}'".format(username))
-	data = ''.join([str(x for x in raw_parameters)])
+	data = ''.join([str(x) for x in raw_parameters])
 	keyGen = kg.RSAEncryption()
 	signature = keyGen.generate_signature(data,key['private_key'])
 	return signature
+
+def verify_signature(raw_parameters,signature,username):
+	key = fetch_specific_attribs_record(['public_key',], 'users',"where username = '{0}'".format(username))
+	data = ''.join([str(x) for x in raw_parameters])
+	keyGen = kg.RSAEncryption()
+	result = keyGen.verifying_signature(data,signature,key['public_key'])
+	return result
 
 def table_size():
 	sql = "select pg_relation_size('rating');"
@@ -101,7 +114,6 @@ def calc_sec_difference(base_date, query_date):
 
 def calc_time_from_seconds(query_seconds,base_date):
 	return base_date + timedelta(seconds = query_seconds)
-
 
 def create_query_clusters(bound,no_clusters,scale):
 	sections = int(bound/no_clusters)

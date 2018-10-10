@@ -9,22 +9,22 @@ def db_function(): #turns on the triggers. if there are no triggers, it generate
 		LANGUAGE PLPGSQL
 		AS
 		$$
-		  BEGIN
+		BEGIN
 		    IF (TG_OP = 'DELETE') THEN
-		        INSERT INTO timeline (id,rec_id, mov_id, mv_name, mv_year,release_date,movie_url,star,user_id,username,signature,previous_signature,__flag__,__t__)
-		        SELECT NEXTVAL('id'), OLD.id, NULL, NULL, NULL, NULL, NULL, NULL, NULL,NULL,NULL,(SELECT signature FROM timeline WHERE id = (SELECT last_value FROM id)),1,NOW();
+		        INSERT INTO timeline
+		        SELECT NEXTVAL('id'), OLD.id, NULL, NULL, NULL, NULL, NULL, NULL, NULL,OLD.username,NULL,(SELECT signature FROM timeline WHERE id = (SELECT last_value-1 FROM id)),1,NOW();
 		        RETURN OLD;
 		    ELSIF (TG_OP = 'UPDATE') THEN
 		        INSERT INTO timeline 
-		        SELECT NEXTVAL('id'), NEW.id, NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,(SELECT signature FROM timeline WHERE id = (SELECT last_value FROM id)),0,NOW();
+		        SELECT NEXTVAL('id'), NEW.id, NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,(SELECT signature FROM timeline WHERE id = (SELECT last_value-1 FROM id)),0,NOW();
 		        RETURN NEW;
 		    ELSIF (TG_OP = 'INSERT') THEN
 		        INSERT INTO timeline
-		        SELECT NEXTVAL('id'), NEW.id , NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,(SELECT signature FROM timeline WHERE id = (SELECT last_value FROM id)),0,NOW();
+		        SELECT NEXTVAL('id'), NEW.id , NEW.mov_id, NEW.mv_name, NEW.mv_year,NEW.release_date,NEW.movie_url,NEW.star,NEW.user_id,NEW.username,NEW.signature,(SELECT signature FROM timeline WHERE id = (SELECT last_value-1 FROM id)),0,NOW();
 		        RETURN NEW;
 		    END IF;
 		    RETURN NULL;
-		  END;
+		END;
 		$$;
 		'''
 	db.command(sql,None)

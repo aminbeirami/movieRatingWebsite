@@ -18,7 +18,11 @@ from collections import deque
 app = Flask(__name__)
 @app.route('/', methods= ['POST','GET'])
 def main():
-	init.init_everything()
+	# ex.random_insert()
+	# ex.check_records_signature()
+	ex.verify_trustworthiness()
+	# ex.random_delete()
+	# init.init_everything()
 	# rel_name = 'rating'
 	# ex.create_snapshots(rel_name,'2018-05-31')
 	# queries = ex.random_query_generator()
@@ -38,6 +42,7 @@ current_user = {'username':'0','location' : ['0','0']}
 cron = Scheduler(daemon=True)
 cron.start()
 P=1
+# Scheduler.add_job(ex.random_rating(False), 'interval', seconds=1, id='my_job_id')
 
 #-------------------------------------- Python Dash -------------------------------------------------------
 # app = dash.Dash(__name__, server=server, url_base_app = '/dash')
@@ -105,10 +110,10 @@ P=1
 
 # 	print fcn.table_size()
 # 	return jsonify((json_list))
-# @cron.interval_schedule(seconds =P)
+@cron.interval_schedule(seconds =P)
 @app.route('/init')
 def initialization():
-	ex.random_rating(True)
+	# ex.random_rating(True)
 	# init.drop_tables()
 	# init.drop_function()
 	# init.create_table()

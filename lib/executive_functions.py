@@ -64,50 +64,56 @@ def random_insert(): #insrts random records to the main database
 	random_rating = randint(1,5)
 	user = fcn.random_user()
 	movie = fcn.random_movie()
-	rating_attribs = [x for x in fcn.table_attribs('rating') if not x == 'id']
-	sql = "INSERT INTO rating VALUES(NEXTVAL('rating_id_seq'),%s)"%",".join("%s" for i in range(len(rating_attribs)))
+	rating_attribs = [x for x in fcn.table_attribs('rating')]
+	record_id = db.query("SELECT NEXTVAL('rating_id_seq')",None,"one")[0]
+	sql = "INSERT INTO rating VALUES(%s)"%",".join("%s" for i in range(len(rating_attribs)))
 	parameters = fcn.insert_parameters(user,movie,random_rating)
+	parameters.insert(0,record_id)
 	signature = fcn.create_signature(parameters,user['username'])
 	parameters.append(signature)
 	db.insert(sql,parameters)
 	db.commit()
+	print 'insert'
 	return {'action':'insert','user':user['username'],'movie':movie['mv_name'],'rating':random_rating,'position':[user['lat'],user['long']],'time':str(datetime.now())}
 
 
 def random_delete(): #deletes random number of records
-	random_record = fcn.fetch_specific_attribs_record(['id','user_id','username','mv_name','star'],'rating','ORDER BY RANDOM() LIMIT 1')
-	user_location = fcn.fetch_specific_attribs_record(['lat','long'],'users','where user_id = {0}'.format(random_record['user_id']))
+	attribs = [x for x in fcn.table_attribs('rating') if not x == 'signature']
+	random_record_list = list(fcn.fetch_specific_record_list(attribs,'rating','ORDER BY RANDOM() LIMIT 1'))
+	user_location = fcn.fetch_specific_attribs_record(['lat','long'],'users','where user_id = {0}'.format(random_record_list[7]))
 	try:
 		sql = "DELETE FROM rating WHERE id =(%s)"
-		parameters = (random_record['id'],)
+		parameters = (random_record_list[0],)
 		db.command(sql,parameters)
 		db.commit()
-		return {'action':'delete',\
-		'user':random_record['username'],\
-		'movie':random_record['mv_name'],\
-		'rating':random_record['star'],\
-		'position':[user_location['lat'],\
-		user_location['long']],
-		'time':str(datetime.now())}
+		for i in range(1,len(random_record_list)-1):
+			random_record_list[i] = None
+		signature = fcn.create_signature(random_record_list,random_record_list[8])
+		record_id = fcn.fetch_specific_record_list(['last_value',],'id','')[0]
+		sql = "UPDATE timeline SET signature = (%s) WHERE id = (%s)"
+		parameters = [signature,record_id]
+		db.command(sql,parameters)
+		db.commit()
+		print 'delete'
+		return {'action':'delete','user':random_record_list[8],'movie':random_record_list[2],'rating':random_record_list[6],'position':[user_location['lat'],user_location['long']],'time':str(datetime.now())}
 	except Exception as e:
 		print e
 		return 'error'
   
 def random_update():
-	random_rating = randint(1,5)
-	random_record = fcn.fetch_specific_attribs_record(['id','user_id','username','mv_name','star'],'rating','ORDER BY RANDOM() LIMIT 1')
-	user_location = fcn.fetch_specific_attribs_record(['lat','long'],'users','where user_id = {0}'.format(random_record['user_id']))
-	sql = "UPDATE rating SET star = (%s) WHERE id =(%s)"
-	parameters = (random_rating,random_record['id'])
-	db. command(sql,parameters)
+	random_rate = randint(1,5)
+	attribs = [x for x in fcn.table_attribs('rating') if not x == 'signature']
+	random_record_list = list(fcn.fetch_specific_record_list(attribs,'rating','ORDER BY RANDOM() LIMIT 1'))
+	random_record_dict = fcn.fetch_specific_attribs_record(attribs,'rating', 'WHERE id ={0}'.format(random_record_list[0]))
+	random_record_list[6] = random_rate
+	signature = fcn.create_signature(random_record_list,random_record_dict['username'])
+	user_location = fcn.fetch_specific_attribs_record(['lat','long'],'users','where user_id = {0}'.format(random_record_dict['user_id']))
+	sql = "UPDATE rating SET star = (%s), signature = (%s) WHERE id =(%s)"
+	parameters = (random_rate,signature,random_record_dict['id'])
+	db.command(sql,parameters)
 	db.commit()
-	return {'action':'update',\
-	'user':random_record['username'],\
-	'movie':random_record['mv_name'],\
-	'rating':random_record['star'],\
-	'position':[user_location['lat'],\
-	user_location['long']],
-	'time':datetime.now()}
+	print 'update'
+	return {'action':'update','user':random_record_dict['username'],'movie':random_record_dict['mv_name'],'rating':random_record_dict['star'],'position':[user_location['lat'],	user_location['long']],'time':datetime.now()}
 
 # ********************************************************** SIMULATION FUNCTIONS ************************************************************
 
@@ -256,8 +262,6 @@ def snap_query_table_creation(snapshot_name,f_value_clause,temp_snapshot_name):
 	db.command(sql,None)
 	db.commit()
 
-
-
 def snapshot_materialization(type,rel_name,timeline_table,query_time,materialized):
 	snapshot_name,temp_snapshot_name = choose_names(type,rel_name)
 	attributes = [x for x in fcn.table_attribs('rating') if not x == 'id']
@@ -269,3 +273,47 @@ def snapshot_materialization(type,rel_name,timeline_table,query_time,materialize
 	snap_query_table_creation(snapshot_name,f_value_clause,temp_snapshot_name)
 # 	# drops the temporary table
 	fcn.drop_table(temp_snapshot_name)
+
+##*********************************************** BLOCKCHAIN FUNCTIONS *************************************************
+def check_records_signature():
+	signature_trust_check = {}
+	attribs = [x for x in fcn.table_attribs('rating') if not x == 'id']
+	attribs.insert(0,'rec_id')
+	no_records_in_timeline = fcn.records_count('timeline')
+	for id_no in range(1,no_records_in_timeline+1):
+		data = fcn.fetch_specific_record_list(attribs,'timeline',"where id = '{0}'".format(id_no))
+		signature_check = fcn.verify_signature(data[:9],data[9],data[8])
+		signature_trust_check[data[0]] = signature_check
+	return signature_trust_check
+
+def chain_verification():
+	chain_trust_check = {}
+	no_records_in_timeline = fcn.records_count('timeline')
+	for id_no in range(1,no_records_in_timeline):
+		current_record_signature = fcn.fetch_specific_attribs_record(['signature'],'timeline',"where id = '{0}'".format(id_no))
+		next_record_prev_signature= fcn.fetch_specific_attribs_record(['prev_signature'],'timeline',"where id = '{0}'".format(id_no+1))
+		if current_record_signature.values() == next_record_prev_signature.values():
+			chain_trust_check[str(id_no)+'_'+str(id_no+1)] = 'Trusted'
+		else:
+			chain_trust_check[str(id_no)+'_'+str(id_no+1)] = 'Untrusted'
+	return chain_trust_check
+
+def regular_blockchain_verification():
+	untrusted_record = []
+	untrusted_chain = []
+	signature_check = check_records_signature()
+	chain_check = chain_verification()
+	for key,value in signature_check.items():
+		if value == 'Untrusted':
+			untrusted_record.append(key)
+	for key,value in chain_check.items():
+		if value == 'Untrusted':
+			untrusted_chain.append(key)
+	return untrusted_record, untrusted_chain
+
+def verify_trustworthiness():
+	untrusted_record, untrusted_chain = regular_blockchain_verification()
+	if not (untrusted_record and untrusted_chain):
+		print 'The chain is trustworthy'
+	else:
+		print 'The chain is broken'

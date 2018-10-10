@@ -38,6 +38,7 @@ class RSAEncryption():
 		return encodedSignature
 
 	def verifying_signature (self, message, signature, publicKey):
+		print message
 		KeyObject = RSA.importKey(publicKey)
 		hashedMessage = SHA256.new()
 		hashedMessage.update(message)
