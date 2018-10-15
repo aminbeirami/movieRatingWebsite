@@ -20,15 +20,15 @@ app = Flask(__name__)
 def main():
 	# ex.random_insert()
 	# ex.check_records_signature()
-	ex.verify_trustworthiness()
+	# ex.verify_trustworthiness()
 	# ex.random_delete()
 	# init.init_everything()
-	# rel_name = 'rating'
-	# ex.create_snapshots(rel_name,'2018-05-31')
+	rel_name = 'rating'
+	# ex.create_snapshots(rel_name,'2018-10-10 10:57:10.719324')
 	# queries = ex.random_query_generator()
 	# ex.create_snapshots('rating','2018-05-24')
 	# query_number = ex.snapshot_materialization()
-	# ex.snapshot_materialization('snapshot',rel_name,'timeline','2018-06-1','rating__52')
+	ex.snapshot_materialization('snapshot',rel_name,'timeline','2018-10-10 10:58:10.719324','rating__86')
 	return render_template('index.html')
 
 app.secret_key = SECRET_KEY
