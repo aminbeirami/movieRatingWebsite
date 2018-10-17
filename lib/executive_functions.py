@@ -263,11 +263,23 @@ def snapshot_materialization(type,rel_name,timeline_table,query_time,materialize
 
 ##*********************************************** BLOCKCHAIN FUNCTIONS *************************************************
 def snapshot_signing(snapshot_name,user):
-	sql ="SELECT user_id, role, CASE WHEN role = 1 THEN 'yes' ELSE 'no' END AS is_admin FROM users WHERE username = '{username}'".format(username = user)
+	sql ='''
+			SELECT user_id, role, 
+			CASE WHEN role = 1 
+			THEN 'yes' ELSE 'no' 
+			END AS is_admin FROM users WHERE username = '{username}'
+		'''.format(username = user)
 	user_info = db.query(sql,None,'one')
 	if user_info[2] =='yes':
 		snap_data = fcn.fetch_snapshot_records(snapshot_name)
 		snap_signature = fcn.create_signature(snap_data,user)
 		fcn.add_columns_snapshot(snapshot_name)
+		fcn.insert_snapshot_signature(snapshot_name,user,snap_signature)
 	else:
 		print 'not a privileged user'
+
+def verify_snapshot_signature(snapshot_name):
+	signer,snap_signature = fcn.fetch_snapshot_signature(snapshot_name)
+	data = fcn.fetch_snapshot_records(snapshot_name)[:-1]
+	result = fcn.verify_signature(data,snap_signature,signer)
+	print result

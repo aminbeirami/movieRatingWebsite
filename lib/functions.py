@@ -52,7 +52,7 @@ def fetch_everything_record_dict(table_name,condition):
 
 def fetch_snapshot_records(snapshot_name):
 	snapshot_attribs = table_attribs(snapshot_name)
-	select_attribs = ",".join("{c}".format(c=x) for x in snapshot_attribs if not x =='table_signature')
+	select_attribs = ",".join("{c}".format(c=x) for x in snapshot_attribs if not (x =='snap_sign' or x == 'signer'))
 	sql = "SELECT {attributes} FROM {snap_name}".format(attributes = select_attribs,snap_name = snapshot_name)
 	rec_data = db.query(sql,None,'all')
 	return rec_data
@@ -199,10 +199,29 @@ def verify_trustworthiness():
 	untrusted_record, untrusted_chain = regular_blockchain_verification()
 	if not (untrusted_record and untrusted_chain):
 		print 'The chain is trustworthy'
+		return 1
 	else:
 		print 'The chain is broken'
+		return 0
 
 def add_columns_snapshot(snapshot_name):
-	sql = "ALTER TABLE {snap_name} ADD COLUMN signer TEXT, ADD COLUMN snap_sign TEXT".format(snap_name = snapshot_name)
+	sql = '''
+			ALTER TABLE {snap_name} 
+			ADD COLUMN signer TEXT, 
+			ADD COLUMN snap_sign TEXT
+		'''.format(snap_name = snapshot_name)
 	db.command(sql,None)
 	db.commit()
+
+def insert_snapshot_signature(snapshot_name,signer,signature):
+	sql = "INSERT INTO {snap_name} (signer, snap_sign) VALUES (%s, %s)".format(snap_name = snapshot_name)
+	parameters = [signer,signature]
+	db.insert(sql,parameters)
+	db.commit()
+	print 'done'
+
+def fetch_snapshot_signature(snapshot_name):
+	attribs = ['signer', 'snap_sign']
+	condition = "WHERE snap_sign IS NOT NULL"
+	result = fetch_specific_attribs_record(attribs,snapshot_name,condition)
+	return result['signer'], result['snap_sign']

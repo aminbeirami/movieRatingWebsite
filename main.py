@@ -27,7 +27,8 @@ def main():
 	# rel_name = 'rating'
 	# ex.create_snapshots(rel_name,'2018-10-10 10:57:10.719324')
 	# fcn.fetch_snapshot_records('rating__92')
-	ex.snapshot_signing('rating__92','palemom')
+	# ex.snapshot_signing('rating__87','admin')
+	ex.verify_snapshot_signature('rating__87')
 	# queries = ex.random_query_generator()
 	# ex.create_snapshots('rating','2018-05-24')
 	# query_number = ex.snapshot_materialization()
