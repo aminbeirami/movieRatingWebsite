@@ -64,14 +64,14 @@ def fetch_specific_attribs_record(attribs,table_name,condition):
 		result[i]=rec_dictionary[i]
 	return result
 
-def fetch_specific_record_list(attribs,table_name,condition):
+def fetch_specific_record_list(attribs,table_name,condition,number):
 	attribs = ','.join(attribs)
 	sql = "SELECT {0} FROM {1} {2}".format(attribs,table_name,condition)
-	result = db.query(sql,None,'one')
+	result = db.query(sql,None,number)
 	return result
 
-def records_count(table_name): # returns number of movies in the database
-	sql = "SELECT COUNT(*) FROM {0}".format(table_name)
+def records_count(table_name,condition): # returns number of movies in the database
+	sql = "SELECT COUNT(*) FROM {table} {condition}".format(table = table_name, condition = condition)
 	result = db.query(sql,None,"one")
 	return result[0]
 
@@ -88,12 +88,12 @@ def define_user(username,latitude,longitude,role):
 	print 'The user {0} with {1} role added to the database'.format(username,role)
 
 def random_user(): #chooses a random user from database
-	user_id = randint(0,records_count('users'))
+	user_id = randint(0,records_count('users',None))
 	user_data = fetch_everything_record_dict('users','where user_id = {0}'.format(user_id))
 	return user_data 
 
 def random_movie(): #chooses a random movie name from database
-	movie_id = randint(0,records_count('movies'))
+	movie_id = randint(0,records_count('movies',None))
 	movie_data = fetch_everything_record_dict('movies','where mov_id = {0}'.format(movie_id))
 	return movie_data
 
@@ -159,34 +159,42 @@ def create_query_clusters(bound,no_clusters,scale):
 			query_list.append(queries[i][j])
 	return sorted(query_list)
 
-def check_records_signature():
+def select_records_ids(timeline_name, start_timestamp, end_timestamp):
+	condition = "WHERE __t__ BETWEEN '{start}' AND '{end}'".format(start = start_timestamp, end = end_timestamp)
+	attribs = ['id',]
+	result = fetch_specific_record_list(attribs,timeline_name,condition,'all')
+	return result
+
+def check_records_signature(start_timestamp, end_timestamp):
 	signature_trust_check = {}
 	attribs = [x for x in table_attribs('rating') if not x == 'id']
 	attribs.insert(0,'rec_id')
-	no_records_in_timeline = records_count('timeline')
-	for id_no in range(1,no_records_in_timeline+1):
-		data = fetch_specific_record_list(attribs,'timeline',"where id = '{0}'".format(id_no))
+	list_of_ids = select_records_ids('timeline',start_timestamp,end_timestamp)
+	for id_no in list_of_ids:
+		data = fetch_specific_record_list(attribs,'timeline',"where id = '{0}'".format(id_no[0]),'one')
 		signature_check = verify_signature(data[:9],data[9],data[8])
-		signature_trust_check[data[0]] = signature_check
+		signature_trust_check[id_no[0]] = signature_check
+	print signature_trust_check
 	return signature_trust_check
 
-def chain_verification():
+def chain_verification(start_timestamp,end_timestamp):
 	chain_trust_check = {}
-	no_records_in_timeline = records_count('timeline')
-	for id_no in range(1,no_records_in_timeline):
-		current_record_signature = fetch_specific_attribs_record(['signature'],'timeline',"where id = '{0}'".format(id_no))
-		next_record_prev_signature= fetch_specific_attribs_record(['prev_signature'],'timeline',"where id = '{0}'".format(id_no+1))
-		if current_record_signature.values() == next_record_prev_signature.values():
-			chain_trust_check[str(id_no)+'_'+str(id_no+1)] = 'Trusted'
-		else:
-			chain_trust_check[str(id_no)+'_'+str(id_no+1)] = 'Untrusted'
+	list_of_ids = select_records_ids('timeline',start_timestamp,end_timestamp)
+	for id_no in list_of_ids:
+		current_record_signature = fetch_specific_attribs_record(['signature'],'timeline',"where id = '{0}'".format(id_no[0]))
+		next_record_prev_signature= fetch_specific_attribs_record(['prev_signature'],'timeline',"where id = '{0}'".format(id_no[0]+1))
+		if next_record_prev_signature:
+			if current_record_signature.values() == next_record_prev_signature.values():
+				chain_trust_check[str(id_no[0])+'_'+str(id_no[0]+1)] = 'Trusted'
+			else:
+				chain_trust_check[str(id_no[0])+'_'+str(id_no[0]+1)] = 'Untrusted'
 	return chain_trust_check
 
-def regular_blockchain_verification():
+def regular_blockchain_verification(start_timestamp,end_timestamp):
 	untrusted_record = []
 	untrusted_chain = []
-	signature_check = check_records_signature()
-	chain_check = chain_verification()
+	signature_check = check_records_signature(start_timestamp,end_timestamp)
+	chain_check = chain_verification(start_timestamp,end_timestamp)
 	for key,value in signature_check.items():
 		if value == 'Untrusted':
 			untrusted_record.append(key)
@@ -195,8 +203,8 @@ def regular_blockchain_verification():
 			untrusted_chain.append(key)
 	return untrusted_record, untrusted_chain
 
-def verify_trustworthiness():
-	untrusted_record, untrusted_chain = regular_blockchain_verification()
+def verify_trustworthiness(start_timestamp,end_timestamp):
+	untrusted_record, untrusted_chain = regular_blockchain_verification(start_timestamp,end_timestamp)
 	if not (untrusted_record and untrusted_chain):
 		print 'The chain is trustworthy'
 		return 1
