@@ -16,10 +16,6 @@ db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 clsuter_info = {'clusters':[],'snapshots':[]}
 
 # **************************************************** SNAPSHOT CREATION FUNCTIONS ***************************************************************
-def get_snap_id():
-	sql = "SELECT NEXTVAL('{0}')".format('snap_id')
-	result = db.query(sql,None,'one')
-	return result[0] 
 
 def create_first_value_clause(attributes):
 	# clause = ",\n".join("last_value({c}) over w as {c}".format(c=x) for x in attributes)
@@ -27,7 +23,7 @@ def create_first_value_clause(attributes):
 	return clause
 
 def create_snapshots(rel_name,timestamp):
-	snap_id = get_snap_id()
+	snap_id = fcn.get_nextval_counter('snap_id')
 	snapshot_name = "{0}__{1}".format(rel_name,str(snap_id))
 	attributes = [x for x in fcn.table_attribs(rel_name) if not x == 'id']
 	f_value_clause = create_first_value_clause(attributes)
@@ -36,18 +32,17 @@ def create_snapshots(rel_name,timestamp):
 	 	CREATE TABLE IF NOT EXISTS {snap_name} AS 
 	 	SELECT DISTINCT * FROM (
 	 		SELECT
-	 			rec_id AS id,
+	 			rec_id,
 	 			{latest_attributes},
 	 			max(__t__) OVER w AS __t__,
 	 			first_value(__flag__) over w AS  flag
 	 		FROM {timeline_table}
-	 		WHERE __t__<= %s 
+	 		WHERE __t__<= %s
 	 			window w AS (partition by rec_id ORDER BY __t__ DESC)) T
 	 		WHERE flag =0
 	 '''.format(snap_name = snapshot_name, timeline_table = 'timeline',latest_attributes = f_value_clause)
 
 	parameters = [timestamp,]
-	print sql
 	db.command(sql,parameters)
 	db.commit()
 # ******************************************* RANDOM INSERTION,DELETION AND UPDATE fUNCTIONS *****************************************************
@@ -57,7 +52,7 @@ def random_insert(): #insrts random records to the main database
 	user = fcn.random_user()
 	movie = fcn.random_movie()
 	rating_attribs = [x for x in fcn.table_attribs('rating')]
-	record_id = db.query("SELECT NEXTVAL('rating_id_seq')",None,"one")[0]
+	record_id = fcn.get_nextval_counter('rating_id_seq')
 	sql = "INSERT INTO rating VALUES(%s)"%",".join("%s" for i in range(len(rating_attribs)))
 	parameters = fcn.insert_parameters(user,movie,random_rating)
 	parameters.insert(0,record_id)
@@ -207,7 +202,7 @@ def choose_names(type,rel_name):
 		snapshot_name = 'query__{0}'.format(query_id)
 		temp_snapshot_name = 'temp__{0}'.format(query_id)
 	elif type == 'snapshot':
-		snap_id = get_snap_id()
+		snap_id = fcn.get_nextval_counter('snap_id')
 		snapshot_name = "{0}__{1}".format(rel_name,str(snap_id))
 		temp_snapshot_name = "temp_{0}__{1}".format(rel_name,str(snap_id))
 	else:
@@ -233,7 +228,6 @@ def union_snapshot_and_query(temp_snapshot_name,timeline_table,f_value_clause,qu
 		timeline_table = 'timeline',
 		latest_attributes = f_value_clause, 
 		materialized_snapshot = materialized)
-	print sql
 	attributes = [start_timestamp,query_timestamp]
 	db.command(sql,attributes)
 	db.commit()
@@ -268,45 +262,12 @@ def snapshot_materialization(type,rel_name,timeline_table,query_time,materialize
 	fcn.drop_table(temp_snapshot_name)
 
 ##*********************************************** BLOCKCHAIN FUNCTIONS *************************************************
-def check_records_signature():
-	signature_trust_check = {}
-	attribs = [x for x in fcn.table_attribs('rating') if not x == 'id']
-	attribs.insert(0,'rec_id')
-	no_records_in_timeline = fcn.records_count('timeline')
-	for id_no in range(1,no_records_in_timeline+1):
-		data = fcn.fetch_specific_record_list(attribs,'timeline',"where id = '{0}'".format(id_no))
-		signature_check = fcn.verify_signature(data[:9],data[9],data[8])
-		signature_trust_check[data[0]] = signature_check
-	return signature_trust_check
-
-def chain_verification():
-	chain_trust_check = {}
-	no_records_in_timeline = fcn.records_count('timeline')
-	for id_no in range(1,no_records_in_timeline):
-		current_record_signature = fcn.fetch_specific_attribs_record(['signature'],'timeline',"where id = '{0}'".format(id_no))
-		next_record_prev_signature= fcn.fetch_specific_attribs_record(['prev_signature'],'timeline',"where id = '{0}'".format(id_no+1))
-		if current_record_signature.values() == next_record_prev_signature.values():
-			chain_trust_check[str(id_no)+'_'+str(id_no+1)] = 'Trusted'
-		else:
-			chain_trust_check[str(id_no)+'_'+str(id_no+1)] = 'Untrusted'
-	return chain_trust_check
-
-def regular_blockchain_verification():
-	untrusted_record = []
-	untrusted_chain = []
-	signature_check = check_records_signature()
-	chain_check = chain_verification()
-	for key,value in signature_check.items():
-		if value == 'Untrusted':
-			untrusted_record.append(key)
-	for key,value in chain_check.items():
-		if value == 'Untrusted':
-			untrusted_chain.append(key)
-	return untrusted_record, untrusted_chain
-
-def verify_trustworthiness():
-	untrusted_record, untrusted_chain = regular_blockchain_verification()
-	if not (untrusted_record and untrusted_chain):
-		print 'The chain is trustworthy'
+def snapshot_signing(snapshot_name,user):
+	sql ="SELECT user_id, role, CASE WHEN role = 1 THEN 'yes' ELSE 'no' END AS is_admin FROM users WHERE username = '{username}'".format(username = user)
+	user_info = db.query(sql,None,'one')
+	if user_info[2] =='yes':
+		snap_data = fcn.fetch_snapshot_records(snapshot_name)
+		snap_signature = fcn.create_signature(snap_data,user)
+		fcn.add_columns_snapshot(snapshot_name)
 	else:
-		print 'The chain is broken'
+		print 'not a privileged user'

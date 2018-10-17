@@ -18,17 +18,20 @@ from collections import deque
 app = Flask(__name__)
 @app.route('/', methods= ['POST','GET'])
 def main():
+	# fcn.define_user('admin',0,0,'admin')
 	# ex.random_insert()
 	# ex.check_records_signature()
 	# ex.verify_trustworthiness()
 	# ex.random_delete()
 	# init.init_everything()
-	rel_name = 'rating'
+	# rel_name = 'rating'
 	# ex.create_snapshots(rel_name,'2018-10-10 10:57:10.719324')
+	# fcn.fetch_snapshot_records('rating__92')
+	ex.snapshot_signing('rating__92','palemom')
 	# queries = ex.random_query_generator()
 	# ex.create_snapshots('rating','2018-05-24')
 	# query_number = ex.snapshot_materialization()
-	ex.snapshot_materialization('snapshot',rel_name,'timeline','2018-10-10 10:58:10.719324','rating__86')
+	# ex.snapshot_materialization('snapshot',rel_name,'timeline','2018-10-10 10:58:10.719324','rating__86')
 	return render_template('index.html')
 
 app.secret_key = SECRET_KEY
