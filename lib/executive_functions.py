@@ -318,7 +318,8 @@ def snapshot_creation_operation(materialized_snapshot,optimal_timestamp,interval
 def optimal_trusted_snapshot_generation():
 	generated_snapshots = []
 	queries = random_query_generator()
-	optimal_snapshots = create_clusters(queries)['snapshots']
+	clustering_info = create_clusters(queries)
+	optimal_snapshots = clustering_info['snapshots']
 	intervals = fcn.generate_verification_intervals(optimal_snapshots)
 	optimal_snapshots.pop(0)
 	if len(optimal_snapshots)==1:
@@ -330,4 +331,5 @@ def optimal_trusted_snapshot_generation():
 		for i in range(1,len(optimal_snapshots)):
 			resulted_snapshot = snapshot_creation_operation(generated_snapshots[i-1],optimal_snapshots[i],intervals[i])
 			generated_snapshots.append(resulted_snapshot)
+	fcn.save_snapshot_info(clustering_info,generated_snapshots)
 	return generated_snapshots

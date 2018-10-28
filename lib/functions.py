@@ -50,6 +50,15 @@ def fetch_everything_record_dict(table_name,condition):
 	rec_dictionary = make_dict(rec_attribs,rec_data)
 	return rec_dictionary
 
+def fetch_snapshot_list():
+	snapshot_list = []
+	sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES"
+	result = db.query(sql,None,'all')
+	for s in result:
+		if 'rating__' in s[0]:
+			snapshot_list.append(s[0])
+	return snapshot_list
+
 def fetch_snapshot_records(snapshot_name):
 	snapshot_attribs = table_attribs(snapshot_name)
 	select_attribs = ",".join("{c}".format(c=x) for x in snapshot_attribs if not (x =='snap_sign' or x == 'signer'))
@@ -247,3 +256,13 @@ def generate_verification_intervals(optimal_timestamps):
 	for i in range(len(optimal_timestamps)-1):
 		intervals.append([optimal_timestamps[i],optimal_timestamps[i+1]])
 	return intervals
+
+def save_snapshot_info(optimal_query_list, snapshot_names):
+	snapshot_info = []
+		# snapshot_info.append([optimal_query_list['snapshots'][i],optimal_query_list['clusters'][i],snapshot_names[i]])
+	f = open('lib/data/info.DAT','w')
+	for i in range(len(snapshot_names)):
+		clause = "{0}|{1}|{2}\n".format(optimal_query_list['snapshots'][i], snapshot_names[i], optimal_query_list['clusters'][i])
+		f.write(clause)
+	f.close()
+	print snapshot_info

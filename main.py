@@ -119,6 +119,7 @@ P=1
 @cron.interval_schedule(seconds =P)
 @app.route('/init')
 def initialization():
+	# init.drop_snapshots()
 	# ex.random_rating(True)
 	# init.drop_tables()
 	# init.drop_function()
@@ -130,8 +131,6 @@ def initialization():
 @app.route('/action_table')
 def action_table():
 	return render_template('table.html')
-
-
 
 if __name__ == '__main__':
 	app.debug = True

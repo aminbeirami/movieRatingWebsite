@@ -1,5 +1,6 @@
 from lib import postgresCon as pc
 from lib.config import *
+from lib import functions as fcn
 db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
 def db_function(): #turns on the triggers. if there are no triggers, it generates the triggers.
@@ -115,3 +116,12 @@ def init_everything():
 	db_function()
 	print "--- Auditing mechanism turned on"
 	print "--- The system is ready!"
+
+def drop_snapshots():
+	snapshots = fcn.fetch_snapshot_list()
+	clause = ",".join("{c}".format(c=x) for x in snapshots)
+	sql = 'DROP TABLE IF EXISTS {0}'.format(clause)
+	db.command(sql,None)
+	db.commit()
+	print 'all snapshots deleted'
+
