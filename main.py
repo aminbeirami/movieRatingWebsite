@@ -18,8 +18,9 @@ from collections import deque
 app = Flask(__name__)
 @app.route('/', methods= ['POST','GET'])
 def main():
+	ex.optimal_trusted_snapshot_generation()
 	# fcn.define_user('admin',0,0,'admin')
-	fcn.verify_trustworthiness('2018.10.10 10:56:52', '2018.10.10 10:57:52')
+	# fcn.verify_trustworthiness('2018.10.10 10:56:52', '2018.10.10 10:57:52')
 	# ex.random_insert()
 	# ex.check_records_signature()
 	# ex.verify_trustworthiness()

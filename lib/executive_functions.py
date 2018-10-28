@@ -45,6 +45,7 @@ def create_snapshots(rel_name,timestamp):
 	parameters = [timestamp,]
 	db.command(sql,parameters)
 	db.commit()
+	return snapshot_name
 # ******************************************* RANDOM INSERTION,DELETION AND UPDATE fUNCTIONS *****************************************************
 
 def random_insert(): #insrts random records to the main database
@@ -126,14 +127,11 @@ def random_query_generator():
 	start = duration['min']
 	end = duration['max']
 	second_difference = fcn.calc_sec_difference(start,end)
-	query_list = fcn.create_query_clusters(second_difference,20,100)
+	query_list = fcn.create_query_clusters(second_difference,20,10)
 	random_dates = []
 	for i in range(len(query_list)):
 		random_dates.append(start + dt.timedelta(seconds = query_list[i]))
-		# random_dates.append(fcn.calc_time_from_seconds(start,query_list[i]))
 	return random_dates
-	# print randrange(int(second_difference))
-	# curr = current + datetime.timedelta(seconds = randrange(int(second_difference)))
 
 #********************************************************* CLUSTERING FUNCTIONS ***********************************************************
 def make_query_list_2D(queries):
@@ -166,7 +164,6 @@ def fetch_clustered_info(queries,clusters,no_clusters,base_date):
 def query_clustering(queries,no_clusters):
 	kmeans = KMeans(n_clusters= no_clusters, init = 'k-means++',max_iter = 300, n_init = 10, random_state = 0)
 	y_kmeans = kmeans.fit_predict(queries)
-	print y_kmeans
 	return y_kmeans, kmeans.cluster_centers_
 
 def recommend_no_clusters(query_data,max_snapshot): #elbow method in clustering
@@ -197,11 +194,11 @@ def create_clusters(query_list):
 
 #*********************************************** SNAPSHOT MATERIALIZATION FUNCTIONS *************************************************
 
-def choose_names(type,rel_name):
-	if type == 'query':
+def choose_names(operation,rel_name):
+	if operation == 'query':
 		snapshot_name = 'query__{0}'.format(query_id)
 		temp_snapshot_name = 'temp__{0}'.format(query_id)
-	elif type == 'snapshot':
+	elif operation == 'snapshot':
 		snap_id = fcn.get_nextval_counter('snap_id')
 		snapshot_name = "{0}__{1}".format(rel_name,str(snap_id))
 		temp_snapshot_name = "temp_{0}__{1}".format(rel_name,str(snap_id))
@@ -210,8 +207,10 @@ def choose_names(type,rel_name):
 	return snapshot_name,temp_snapshot_name
 
 
-def union_snapshot_and_query(temp_snapshot_name,timeline_table,f_value_clause,query_timestamp,materialized):
-	start_timestamp = fcn.table_duration(materialized)['max']
+def union_snapshot_and_query(temp_snapshot_name,timeline_table,f_value_clause,query_timestamp,materializing_snapshot):
+	start_timestamp = fcn.table_duration(materializing_snapshot)['max']
+	materialized_attribs = fcn.table_attribs(materializing_snapshot)
+	snap_attribs = ",\n".join("{c}".format(c=x) for x in materialized_attribs if not (x == 'signer' or x =='snap_sign'))
 	sql = '''
 	CREATE TABLE IF NOT EXISTS {temp} AS
 	SELECT DISTINCT * FROM (
@@ -223,11 +222,12 @@ def union_snapshot_and_query(temp_snapshot_name,timeline_table,f_value_clause,qu
 		WHERE (__t__ BETWEEN %s AND %s)
 		window w AS (partition by rec_id ORDER BY __t__ DESC)) T
 		UNION ALL
-		SELECT * FROM {materialized_snapshot}
+		SELECT {snapshot_attributes} FROM {materialized_snapshot}
 	'''.format(temp =temp_snapshot_name,
 		timeline_table = 'timeline',
-		latest_attributes = f_value_clause, 
-		materialized_snapshot = materialized)
+		latest_attributes = f_value_clause,
+		snapshot_attributes = snap_attribs,
+		materialized_snapshot = materializing_snapshot)
 	attributes = [start_timestamp,query_timestamp]
 	db.command(sql,attributes)
 	db.commit()
@@ -249,8 +249,8 @@ def snap_query_table_creation(snapshot_name,f_value_clause,temp_snapshot_name):
 	db.command(sql,None)
 	db.commit()
 
-def snapshot_materialization(type,rel_name,timeline_table,query_time,materialized):
-	snapshot_name,temp_snapshot_name = choose_names(type,rel_name)
+def snapshot_materialization(operation,rel_name,timeline_table,query_time,materialized):
+	snapshot_name,temp_snapshot_name = choose_names(operation,rel_name)
 	attributes = [x for x in fcn.table_attribs('rating') if not x == 'id']
 	f_value_clause = create_first_value_clause(attributes)
 	fcn.drop_table(temp_snapshot_name)
@@ -260,6 +260,7 @@ def snapshot_materialization(type,rel_name,timeline_table,query_time,materialize
 	snap_query_table_creation(snapshot_name,f_value_clause,temp_snapshot_name)
 # 	# drops the temporary table
 	fcn.drop_table(temp_snapshot_name)
+	return snapshot_name
 
 ##*********************************************** BLOCKCHAIN FUNCTIONS *************************************************
 def snapshot_signing(snapshot_name,user):
@@ -275,11 +276,58 @@ def snapshot_signing(snapshot_name,user):
 		snap_signature = fcn.create_signature(snap_data,user)
 		fcn.add_columns_snapshot(snapshot_name)
 		fcn.insert_snapshot_signature(snapshot_name,user,snap_signature)
+		return 1
 	else:
 		print 'not a privileged user'
+		return 0
 
-def verify_snapshot_signature(snapshot_name):
-	signer,snap_signature = fcn.fetch_snapshot_signature(snapshot_name)
-	data = fcn.fetch_snapshot_records(snapshot_name)[:-1]
-	result = fcn.verify_signature(data,snap_signature,signer)
-	print result
+def snapshot_creation_operation(materialized_snapshot,optimal_timestamp,interval):
+	chain_trustworthiness = fcn.verify_trustworthiness(interval[0],interval[1])
+	if materialized_snapshot:
+		snapshot_trustworthiness = fcn.verify_snapshot_signature(materialized_snapshot)
+		if snapshot_trustworthiness == 'Trusted':
+			if chain_trustworthiness == 'Trusted':
+				resulted_snapshot = snapshot_materialization('snapshot','rating','timeline',optimal_timestamp,materialized_snapshot)
+				status = snapshot_signing(resulted_snapshot,'admin')
+				if status ==1:
+					print 'signing snapshot {snap_name} was successful'.format(snap_name = resulted_snapshot)
+					return resulted_snapshot
+				else:
+					print 'signing snapshot {snap_name} was unsuccessful! please check the log.'.format(snap_name = snapshot_name)
+					return 0
+			else:
+				print 'Blockchain untrusted. Please check the log file.'
+				return -1
+		else:
+			print 'Snapshot signature does not match. Please check the log file.'
+			return -2
+	else:
+		if chain_trustworthiness == 'Trusted':
+			resulted_snapshot = create_snapshots('rating',optimal_timestamp)
+			status = snapshot_signing(resulted_snapshot,'admin')
+			if status ==1:
+				print 'signing snapshot {snap_name} was successful'.format(snap_name = resulted_snapshot)
+				return resulted_snapshot
+			else:
+				print 'signing snapshot {snap_name} was unsuccessful! please check the log.'.format(snap_name = snapshot_name)
+				return 0
+		else:
+			print 'untrusted blockchain! please check the log.'
+			return -1
+
+def optimal_trusted_snapshot_generation():
+	generated_snapshots = []
+	queries = random_query_generator()
+	optimal_snapshots = create_clusters(queries)['snapshots']
+	intervals = fcn.generate_verification_intervals(optimal_snapshots)
+	optimal_snapshots.pop(0)
+	if len(optimal_snapshots)==1:
+		resulted_snapshot = snapshot_creation_operation(None,optimal_snapshots[0],intervals[0])
+		generated_snapshots.append(resulted_snapshot)
+	else:
+		resulted_snapshot = snapshot_creation_operation(None,optimal_snapshots[0],intervals[0])
+		generated_snapshots.append(resulted_snapshot)
+		for i in range(1,len(optimal_snapshots)):
+			resulted_snapshot = snapshot_creation_operation(generated_snapshots[i-1],optimal_snapshots[i],intervals[i])
+			generated_snapshots.append(resulted_snapshot)
+	return generated_snapshots

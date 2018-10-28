@@ -207,10 +207,10 @@ def verify_trustworthiness(start_timestamp,end_timestamp):
 	untrusted_record, untrusted_chain = regular_blockchain_verification(start_timestamp,end_timestamp)
 	if not (untrusted_record and untrusted_chain):
 		print 'The chain is trustworthy'
-		return 1
+		return 'Trusted'
 	else:
 		print 'The chain is broken'
-		return 0
+		return 'Untrusted'
 
 def add_columns_snapshot(snapshot_name):
 	sql = '''
@@ -233,3 +233,17 @@ def fetch_snapshot_signature(snapshot_name):
 	condition = "WHERE snap_sign IS NOT NULL"
 	result = fetch_specific_attribs_record(attribs,snapshot_name,condition)
 	return result['signer'], result['snap_sign']
+
+def verify_snapshot_signature(snapshot_name):
+	signer,snap_signature = fetch_snapshot_signature(snapshot_name)
+	data = fetch_snapshot_records(snapshot_name)[:-1]
+	result = verify_signature(data,snap_signature,signer)
+	return result
+
+def generate_verification_intervals(optimal_timestamps):
+	intervals = []
+	duration = table_duration('timeline')
+	optimal_timestamps.insert(0,duration['min'])
+	for i in range(len(optimal_timestamps)-1):
+		intervals.append([optimal_timestamps[i],optimal_timestamps[i+1]])
+	return intervals
