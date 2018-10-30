@@ -52,14 +52,19 @@ def fetch_everything_record_dict(table_name,condition):
 	rec_dictionary = make_dict(rec_attribs,rec_data)
 	return rec_dictionary
 
-def fetch_snapshot_list():
-	snapshot_list = []
+def fetch_table_list(type):
+	table_list = []
 	sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES"
 	result = db.query(sql,None,'all')
-	for s in result:
-		if 'rating__' in s[0]:
-			snapshot_list.append(s[0])
-	return snapshot_list
+	if type == 'snapshot': 
+		for s in result:
+			if 'rating__' in s[0]:
+				table_list.append(s[0])
+	elif type == 'query':
+		for s in result:
+			if 'query__' in s[0]:
+				table_list.append(s[0])
+	return table_list
 
 def fetch_snapshot_records(snapshot_name):
 	snapshot_attribs = table_attribs(snapshot_name)

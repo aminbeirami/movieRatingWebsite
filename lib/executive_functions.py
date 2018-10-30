@@ -197,6 +197,7 @@ def create_clusters(query_list):
 
 def choose_names(operation,rel_name):
 	if operation == 'query':
+		query_id = fcn.get_nextval_counter('query_id')
 		snapshot_name = 'query__{0}'.format(query_id)
 		temp_snapshot_name = 'temp__{0}'.format(query_id)
 	elif operation == 'snapshot':
@@ -338,7 +339,6 @@ def query_K_nearest(query, clusters):
 	predicted_class = neigh.predict(query_sec)[0]
 	return class_names[predicted_class]
 
-
 def optimal_trusted_snapshot_generation():
 	generated_snapshots = []
 	queries = random_query_generator()
@@ -371,6 +371,12 @@ def choose_snapshot_materialization(query_timestamp):
 	if selected_snapshot == None:	
 		selected_snapshot = query_K_nearest(query_timestamp,snap_info)
 	return selected_snapshot
+
 def run_query(query_timestamp):
-	snapshot = choose_snapshot_materialization(query_timestamp)
+	operation = 'query'
+	rel_name = 'rating'
+	timeline_table = 'timeline'
+	query_time = query_timestamp
+	materialized = choose_snapshot_materialization(query_timestamp)
+	snapshot_materialization(operation,rel_name,timeline_table,query_time,materialized)
 	

@@ -68,8 +68,10 @@ def create_table():
 def create_snapshot_sequence():
 	sql = "CREATE SEQUENCE IF NOT EXISTS snap_id"
 	db.command(sql,None)
+	sql2 = "CREATE SEQUENCE IF NOT EXISTS query_id"
+	db.command(sql2,None)
 	db.commit()
-	print 'the sanp_id sequence was created.'
+	print 'the sanp_id and query_id sequences created.'
 
 def reset_ids(id_name):
 	sql = "ALTER SEQUENCE {0} RESTART WITH 1".format(id_name)
@@ -101,27 +103,38 @@ def drop_timeline():
 	db.command(sql,None)
 	db.commit()
 
+def drop_snapshots():
+	snapshots = fcn.fetch_table_list('snapshot')
+	clause = ",".join("{c}".format(c=x) for x in snapshots)
+	sql = 'DROP TABLE IF EXISTS {0}'.format(clause)
+	db.command(sql,None)
+	db.commit()
+
+
+def drop_queries():
+	queries = fcn.fetch_table_list('query')
+	clause = ",".join("{c}".format(c=x) for x in queries)
+	sql = 'DROP TABLE IF EXISTS {0}'.format(clause)
+	db.command(sql,None)
+	db.commit()
+
 def init_everything():
 	"--- started initialization..."
 	drop_tables()
 	drop_timeline()
-	print "--- All tables dropped"
+	drop_snapshots()
+	drop_queries()
+	print "--- All tables,queries and snapshots dropped"
 	drop_function()
 	print "---Auditing functions dropped"
 	create_snapshot_sequence()
 	reset_ids('id')
+	reset_ids('timeline_id_seq')
+	reset_ids('snap_id')
 	create_table()
 	create_timeline()
 	print "--- The normal and audit temporal log table created"
 	db_function()
 	print "--- Auditing mechanism turned on"
 	print "--- The system is ready!"
-
-def drop_snapshots():
-	snapshots = fcn.fetch_snapshot_list()
-	clause = ",".join("{c}".format(c=x) for x in snapshots)
-	sql = 'DROP TABLE IF EXISTS {0}'.format(clause)
-	db.command(sql,None)
-	db.commit()
-	print 'all snapshots deleted'
 
