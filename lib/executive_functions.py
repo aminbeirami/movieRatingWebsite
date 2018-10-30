@@ -6,6 +6,7 @@ from lib.config import *
 from random import randint, randrange
 from datetime import datetime
 from sklearn.cluster import KMeans
+from sklearn.neighbors import KNeighborsClassifier
 import datetime as dt
 import numpy as np
 import random
@@ -159,7 +160,7 @@ def fetch_clustered_info(queries,clusters,no_clusters,base_date):
 				cluster_of_queries_sec[j].append(queries[s][0])
 				cluster_of_queries_date[j].append(fcn.calc_time_from_seconds(queries[s][0],base_date))
 	snapshot_positions = optimal_snap_positions(cluster_of_queries_sec,base_date)
-	return	cluster_of_queries_date,snapshot_positions
+	return	cluster_of_queries_date,snapshot_positions,cluster_of_queries_sec
 
 def query_clustering(queries,no_clusters):
 	kmeans = KMeans(n_clusters= no_clusters, init = 'k-means++',max_iter = 300, n_init = 10, random_state = 0)
@@ -175,22 +176,22 @@ def recommend_no_clusters(query_data,max_snapshot): #elbow method in clustering
 	return cost
 
 def create_clusters(query_list):
-	cluster_dates = []
-	snapshot_positions_date = []
-	duration = fcn.table_duration('timeline')
 	query_in_seconds = []
+	cluster_info_date = {}
+	cluster_info_scalar = {}
+	duration = fcn.table_duration('timeline')
 	for i in range(len(query_list)):
 		query_in_seconds.append(fcn.calc_sec_difference(duration['min'],query_list[i]))
 	query_list_2D = make_query_list_2D(query_in_seconds)
 	recommended = recommend_no_clusters(query_list_2D,10) #elbow method to find the optimal snapshot numbers
 	clustered_list,centroids = query_clustering(query_list_2D,6)
-	query_clusters,snapshot_positions = fetch_clustered_info(query_list_2D,clustered_list,6,duration['min'])
-	clsuter_info['clusters'] = query_clusters
-	clsuter_info['snapshots'] = snapshot_positions
-	return clsuter_info
-	# snapshot_positions_seconds = optimal_snap_positions(query_clusters,duration['min'])
-	# for i in range(len(clustered_list)):
-	# 	print clustered_list[i]
+	query_clusters_date,snapshots_date, query_clusters_seconds = fetch_clustered_info(query_list_2D,clustered_list,6,duration['min'])
+	cluster_info_date['clusters_date'] = query_clusters_date
+	cluster_info_date['snapshots_date'] = snapshots_date
+	cluster_info_date['base_date'] = duration['min']
+	for i in range(len(centroids)):
+		cluster_info_scalar[centroids[i][0]] = query_clusters_seconds[i]
+	return cluster_info_date,cluster_info_scalar
 
 #*********************************************** SNAPSHOT MATERIALIZATION FUNCTIONS *************************************************
 
@@ -314,14 +315,38 @@ def snapshot_creation_operation(materialized_snapshot,optimal_timestamp,interval
 		else:
 			print 'untrusted blockchain! please check the log.'
 			return -1
+##*********************************************** snapshot generation and query ***************************************
+def K_nearest_preprocessing(query,clusters):
+	all_queries = []
+	classes = []
+	class_names = []
+	fmt = '%Y-%m-%d %H:%M:%S.%f'
+	query_datetime = datetime.strptime(query, fmt)
+	base_datetime = datetime.strptime(clusters[0].values()[0][1],fmt)
+	query_sec = fcn.calc_sec_difference(base_datetime,query_datetime)
+	for i in range(len(clusters)):
+		class_names.append(clusters[i].keys()[0])
+		for j in range(len(clusters[i].values()[0][0])):
+			all_queries.append([float(clusters[i].values()[0][0][j])])
+			classes.append(i)
+	return all_queries, classes,class_names, query_sec
+
+def query_K_nearest(query, clusters):
+	all_queries, classes, class_names, query_sec = K_nearest_preprocessing(query,clusters)
+	neigh = KNeighborsClassifier(n_neighbors=3)
+	neigh.fit(all_queries, classes)
+	predicted_class = neigh.predict(query_sec)[0]
+	return class_names[predicted_class]
+
 
 def optimal_trusted_snapshot_generation():
 	generated_snapshots = []
 	queries = random_query_generator()
-	clustering_info = create_clusters(queries)
-	optimal_snapshots = clustering_info['snapshots']
+	clustering_info,snapshot_info = create_clusters(queries)
+	optimal_snapshots = clustering_info['snapshots_date']
 	intervals = fcn.generate_verification_intervals(optimal_snapshots)
 	optimal_snapshots.pop(0)
+
 	if len(optimal_snapshots)==1:
 		resulted_snapshot = snapshot_creation_operation(None,optimal_snapshots[0],intervals[0])
 		generated_snapshots.append(resulted_snapshot)
@@ -331,5 +356,21 @@ def optimal_trusted_snapshot_generation():
 		for i in range(1,len(optimal_snapshots)):
 			resulted_snapshot = snapshot_creation_operation(generated_snapshots[i-1],optimal_snapshots[i],intervals[i])
 			generated_snapshots.append(resulted_snapshot)
-	fcn.save_snapshot_info(clustering_info,generated_snapshots)
+
+	fcn.delete_snapshot_info()
+	fcn.save_snapshot_info(snapshot_info,clustering_info,generated_snapshots)
 	return generated_snapshots
+
+def choose_snapshot_materialization(query_timestamp):
+	selected_snapshot = None
+	snap_info,clusters_boundary = fcn.import_snapshot_info()
+	snapshots = clusters_boundary.keys()
+	for i in range(len(snapshots)):
+		if clusters_boundary[snapshots[i]][0] <= query_timestamp <= clusters_boundary[snapshots[i]][1]:
+			selected_snapshot = snapshots[i]
+	if selected_snapshot == None:	
+		selected_snapshot = query_K_nearest(query_timestamp,snap_info)
+	return selected_snapshot
+def run_query(query_timestamp):
+	snapshot = choose_snapshot_materialization(query_timestamp)
+	

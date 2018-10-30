@@ -1,15 +1,17 @@
 # BY AMIN BEIRAMI -- REGULAR FUNCTIONS
+from datetime import datetime,timedelta
+from collections import OrderedDict
 from lib import postgresCon as pc
-import functools
 from lib import keyGen as kg
 from random import randint
 from lib.config import *
 from time import sleep
-from datetime import datetime,timedelta
+import pandas as pd
 import numpy as np
+import functools
+import os
 # from lib import thread_timer as tm
-
-from threading import Event, Thread
+# from threading import Event, Thread
 
 def call_repeatedly(interval, func, *args):
     stopped = Event()
@@ -142,7 +144,7 @@ def table_duration(table_name):
 	return {'min': min_date, 'max':max_date}
 
 def calc_sec_difference(base_date, query_date):
-	second_difference = int((query_date-base_date).total_seconds())
+	second_difference = float((query_date-base_date).total_seconds())
 	return second_difference
 
 def calc_time_from_seconds(query_seconds,base_date):
@@ -257,12 +259,45 @@ def generate_verification_intervals(optimal_timestamps):
 		intervals.append([optimal_timestamps[i],optimal_timestamps[i+1]])
 	return intervals
 
-def save_snapshot_info(optimal_query_list, snapshot_names):
-	snapshot_info = []
-		# snapshot_info.append([optimal_query_list['snapshots'][i],optimal_query_list['clusters'][i],snapshot_names[i]])
+def save_snapshot_info(snapshot_scalar, snapshot_dates,snapshot_names):
+	sorted_keys = sorted(snapshot_scalar.keys())
 	f = open('lib/data/info.DAT','w')
+	first_line = '***snapshot_timestamp|snapshot_scalar|snapshot_name|queries_timestamp|queries_scalar|base_timestamp|cluster_min|cluster_max***\n'
+	f.write(first_line)
 	for i in range(len(snapshot_names)):
-		clause = "{0}|{1}|{2}\n".format(optimal_query_list['snapshots'][i], snapshot_names[i], optimal_query_list['clusters'][i])
+		print sorted_keys[i]
+		clause = "{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}\n".format(snapshot_dates['snapshots_date'][i],
+			sorted_keys[i],
+			snapshot_names[i],
+			snapshot_dates['clusters_date'][i],
+			snapshot_scalar[sorted_keys[i]],
+			snapshot_dates['base_date'],
+			snapshot_dates['clusters_date'][i][0],			
+			snapshot_dates['clusters_date'][i][-1])
 		f.write(clause)
 	f.close()
-	print snapshot_info
+
+def delete_snapshot_info():
+	if os.path.exists('lib/data/info.DAT'):
+		os.remove('lib/data/info.DAT')
+	else:
+		print 'file does not exist'
+
+def text_list_to_list(text_list):
+	return text_list.strip('[]').split(',')
+
+def import_snapshot_info():
+	clusters_boundary = {}
+	snap_cluster = []
+	if os.path.exists('lib/data/info.DAT'):
+		with open('lib/data/info.DAT','r') as f:
+			next(f)
+			for lines in f:
+				snap_dict = {}
+				snap_info = lines.strip('\n').split('|')
+				clusters_boundary[snap_info[2]] = [snap_info[6],snap_info[7]]
+				snap_dict[snap_info[2]] = [text_list_to_list(snap_info[4]),snap_info[5]]
+				snap_cluster.append(snap_dict)
+	else:
+		print 'snapshot information doesnot exist'
+	return snap_cluster,clusters_boundary
