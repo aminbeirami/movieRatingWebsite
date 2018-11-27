@@ -1,24 +1,214 @@
 {% extends "base.html" %}
 {% block content %}
-<div id = "table_header">
-	<table id="action" style="width: 100%" border="1">
-	        <col width="10%" />
-            <col width="30%" />
-            <col width="30%" />
-            <col width="30px" />
-		<thead>
-			<tr>
-				<th>Action</th>
-				<th>Movie Name</th>
-				<th>username</th>
-				<th>rating</th>
-			</tr>
-		</thead>
-	</table>
-	<div id="table_body">
-		<table id="table_data">
-			
+<div class="timeline_d3">
+	<div class="container">
+			<div class="timeline-tooltip">
+				<div class="tooltipTxt"></div>
+			</div>
+			<div class="records">
+				<div class="label">
+					<div class="text">records</div>
+				</div>
+				<div class="content"></div>
+			</div>
+			<div class="queries">
+				<div class="label">
+					<div class="text">queries</div>
+				</div>
+				<div class="content"></div>
+			</div>
+			<div class="snapshots">
+				<div class="label">
+					<div class="text">snapshots</div>
+				</div>
+				<div class="content">
+					<div class="date"></div>
+				</div>
+			</div>
+			<div class="axis">
+				<div class="ticks"></div>
+			</div>
+			<div class="data-information">
+				<span id="data-info"></span>
+			</div>
+	</div>
+</div>
+
+<div class="scenario-container">
+	<div class="data-generation">
+		<div class="button_container2">
+			<button class="collapsible"> Generate data </button>
+			<div class="db_content">
+		  		<ul>
+		  			<li> 
+		  				<form id="random-generate" method="POST">
+		  					<button class="generate-button" name="submit_button" value="generate-random">Generate</button>
+		  					<button class="generate-button" name="submit_button" value="stop-random">stop</button>
+		  				</form> 
+		  			</li>
+		  		</ul>
+			</div>
+		</div>
+		<div class="button_container2">
+			<button class="collapsible">Manual data manipulation</span></button>
+			<div class="db_content">
+				<form class="manual-manipulation" method="POST">
+					<select class="id-list">
+						
+					</select>
+					<button class="search-id" name="submit_button" value="search-id"> search </button>
+				</form>
+				<div class="record-form">
+					<div>id</div> <input type="text" name="rec-id" >
+					<div>movie name</div> <input type="text" name="mv-name" >
+					<div>movie year</div> <input type="text" name="mv-year" >
+					<div>movie url</div> <input type="text" name="mv-url" >
+					<div>user</div> <input type="text" name="user" >
+					<div>rating</div> <input type="text" name="rating" >
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="qury-generation">
+		<div class="button_container2">
+			<button class="collapsible"> Generate random queries </button>	
+			<div class="db_content">
+		  		<ul>
+		  			<li>
+		  				<form id="random-query" method="POST">
+		  					<input type="number" name="number">
+		  					<button class="query-button" name="submit_button" value="random-query">Generate</button>
+		  				</form>
+		  			</li>
+		  		</ul>
+			</div>
+		</div>
+		<div class="button_container2">
+			<button class="collapsible">Manual query</button>
+			<div class="db_content">
+				<ul>
+		  			<li>
+		  				<span>choose an id:</span>
+		  				<select>
+		  					<option> id </option>
+		  				</select>
+		  			</li>
+	  			</ul>
+			</div>
+		</div>
+	</div>
+	<div class="snapshot-generation">
+		<div class="button_container2">
+				<button class="collapsible">Place trusted optimal snapshots</span></button>
+		
+			<div class="db_content">
+		  		<ul>
+			  		<form class="snapshot" method="POST">
+			  		<input type="number" name="snap_number">
+		  				<button class="snapshot_button" name="submit_button" value="snapshot"> generate </button>
+			  		</form>
+		  		</ul>
+			</div>
+		</div>
+		<div class="button_container2">
+				<button class="collapsible" id="snapshot-view-title">Snapshot view</span></button>
+
+			<div class="db_content">
+				<ul>
+				<form class="snaoshot-view" method="POST">
+					<select id="snapshot-list" name="snapshot-name">
+						
+					</select>
+					<button class="snapshot-view-button" name="submit_button" value="view-snapshot" > View </button>
+				</form>
+	  			</ul>
+			</div>
+		</div>
+	</div>
+	<div class="trust-checker">
+		<div class="button_container2">
+				<button class="collapsible">Analyze optimal snapshots</button>
+			<div class="db_content">
+		  		<ul>
+		  			<form class="optimal-snapshot" method="POST"> 
+		  				<input type="number" name="snapshot-numbers">
+		  				<button name="submit_button" value="analyze-snapshots">Analyze</button>
+		  			</form>
+		  		</ul>
+		  			<figure>
+		  				<img src="../static/charts/elbow.png" height="400" >
+		  			</figure>
+		  		
+			</div>
+		</div>
+		<div class="button_container2">
+				<button class="collapsible">trust checker</button>
+
+			<div class="db_content">
+				<ul>
+					<form class="trustworthiness" method="POST">
+						<button class="trust" name="submit_button" value="trust-checker">Check</button>
+					</form>
+	  			</ul>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="right-table">
+	<div class="activity-table">
+		<table id="customers">
+		  <tr>
+		    <th>Activity</th>
+		  </tr>
 		</table>
 	</div>
 </div>
+
+
+<div class="tab">
+  <button class="tablinks" id="snap-table" onclick="openSnapTable()">Snapshot</button>
+  <button class="tablinks" id="chain-table" onclick="openChainVerification()">Blockchain</button>
+  <button class="tablinks" id="query-table" onclick="openRecordVerification()">Records</button>
+</div>
+
+<div class="snapshot-view">
+	<div class="top-title">snapshot name:<span id="snapshot_name"></span></div>
+	<div class="activity-table">
+		<table class="snapshot-table" id="customers">
+			<tr id="snapshot_header">
+			</tr>
+		</table>
+	</div>
+	<div class="snapshot-status">
+		<div id="snapshot-size"> Number of records: <span id="snapshot-length"></span> </div>
+		<div id="snapshot-status"> Status: <span id="trust-status"></span></div>
+	</div>
+</div>
+<div class="chain-verification">
+
+	<div class="activity-table">
+		<table class="chain-status-table" id="customers">
+		  <tr>
+		    <th>Chain</th>
+		    <th>Status</th>
+		  </tr>
+		</table>
+	</div>
+
+</div>
+<div class="record-verification">
+		<div class="activity-table">
+		<table class="record-status-table" id="customers">
+		  <tr>
+		    <th>Chain</th>
+		    <th>Status</th>
+		  </tr>
+		</table>
+	</div>
+</div>
+
+<div class="whitespace"></div>
+
+
 {% endblock %}

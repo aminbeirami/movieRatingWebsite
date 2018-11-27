@@ -1,6 +1,7 @@
 from lib import postgresCon as pc
 from lib.config import *
 from lib import functions as fcn
+import os
 db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 
 def db_function(): #turns on the triggers. if there are no triggers, it generates the triggers.
@@ -105,19 +106,24 @@ def drop_timeline():
 
 def drop_snapshots():
 	snapshots = fcn.fetch_table_list('snapshot')
-	clause = ",".join("{c}".format(c=x) for x in snapshots)
-	sql = 'DROP TABLE IF EXISTS {0}'.format(clause)
-	db.command(sql,None)
-	db.commit()
+	if snapshots:
+		clause = ",".join("{c}".format(c=x) for x in snapshots)
+		sql = 'DROP TABLE IF EXISTS {0}'.format(clause)
+		db.command(sql,None)
+		db.commit()
+	else:
+		return 0
 
 
 def drop_queries():
 	queries = fcn.fetch_table_list('query')
-	clause = ",".join("{c}".format(c=x) for x in queries)
-	sql = 'DROP TABLE IF EXISTS {0}'.format(clause)
-	db.command(sql,None)
-	db.commit()
-
+	if queries:
+		clause = ",".join("{c}".format(c=x) for x in queries)
+		sql = 'DROP TABLE IF EXISTS {0}'.format(clause)
+		db.command(sql,None)
+		db.commit()
+	else:
+		return 0
 def init_everything():
 	"--- started initialization..."
 	drop_tables()
@@ -129,7 +135,7 @@ def init_everything():
 	print "---Auditing functions dropped"
 	create_snapshot_sequence()
 	reset_ids('id')
-	reset_ids('timeline_id_seq')
+	# reset_ids('timeline_id_seq')
 	reset_ids('snap_id')
 	create_table()
 	create_timeline()
@@ -137,4 +143,17 @@ def init_everything():
 	db_function()
 	print "--- Auditing mechanism turned on"
 	print "--- The system is ready!"
+	fcn.delete_firebase('activity')
+	fcn.delete_firebase('chain_check')
+	fcn.delete_firebase('components')
+	fcn.delete_firebase('queries')	
+	fcn.delete_firebase('record_signature')	
+	fcn.delete_firebase('snapshotQuery')	
+	fcn.delete_firebase('snapshots')	
+	fcn.delete_firebase('trustworthiness')
+	if os.path.exists("static/charts/elbow.png"):
+		os.remove("static/charts/elbow.png")
+	else:
+		print("The file does not exist")
+
 

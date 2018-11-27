@@ -1,45 +1,61 @@
-import atexit
-# import dash
-# import plotly.plotly as py
-# import dash_html_components as html
-# import dash_core_components as dcc
-# import plotly.graph_objs as go
-# from dash.dependencies import Input,Output,State, Event
+import atexit, json, time, threading, logging
 from apscheduler.scheduler import Scheduler
 from flask import Flask, render_template, session, request, flash, redirect, url_for,jsonify,make_response
 from lib.config import *
+from random import randint
 from lib import functions as fcn
 from lib import initialization as init
 from lib import executive_functions as ex
+from lib import info
 from functools import wraps
 from collections import deque
 
 
 app = Flask(__name__)
+app.secret_key = SECRET_KEY
+
+logging.basicConfig()
+cron = Scheduler(daemon=True)
+
+@cron.interval_schedule(seconds =2)
+def random_data():
+	action = None
+	random_no = randint(1,2)
+	if random_no ==1:
+		action = ex.random_rating(True)
+	else:	
+		action = ex.random_rating(False)
+	fcn.firebase_writing(action,'activity',None)
+	info.timline_records()
+
+
+#random record generation
+
+
 @app.route('/', methods= ['POST','GET'])
 def main():
-	# init.drop_snapshots()
-	ex.run_query('2018-10-10 10:57:29.0')
-	# ex.optimal_trusted_snapshot_generation()
-	# fcn.define_user('admin',0,0,'admin')
-	# fcn.verify_trustworthiness('2018.10.10 10:56:52', '2018.10.10 10:57:52')
-	# ex.random_insert()
-	# ex.check_records_signature()
-	# ex.verify_trustworthiness()
-	# ex.random_delete()
-	# init.init_everything()
-	# rel_name = 'rating'
-	# ex.create_snapshots(rel_name,'2018-10-10 10:57:10.719324')
-	# fcn.fetch_snapshot_records('rating__92')
-	# ex.snapshot_signing('rating__87','admin')
-	# ex.verify_snapshot_signature('rating__87')
-	# queries = ex.random_query_generator()
-	# ex.create_snapshots('rating','2018-05-24')
-	# query_number = ex.snapshot_materialization()
-	# ex.snapshot_materialization('snapshot',rel_name,'timeline','2018-10-10 10:58:10.719324','rating__86')
-	return render_template('index.html')
+	if request.method == 'POST':
+		if request.form['submit_button'] == 'generate-random':
+			cron.start()
+		if request.form['submit_button'] == 'stop-random':
+			cron.shutdown(wait=False)
+		if request.form['submit_button'] == 'random-query':
+			number = request.form['number']
+			ex.random_query_generator(number)
+		if request.form['submit_button'] == 'snapshot':
+			number = int(request.form['snap_number'])
+			ex.optimal_trusted_snapshot_generation(number)
+		if request.form['submit_button'] == 'view-snapshot':
+			ex.query_snapshot(request.form['snapshot-name'])
+		if request.form['submit_button'] == 'analyze-snapshots':
+			number = int(request.form['snapshot-numbers'])
+			ex.recommend_no_clusters(number)
+		if request.form['submit_button'] == 'trust-checker':
+			ex.verify_trust()
+		return redirect(url_for('main'))
+	else:
+		return render_template('index.html')
 
-app.secret_key = SECRET_KEY
 
 db_size = deque(maxlen = 20)
 time_size_checked = deque(maxlen = 20)
@@ -47,88 +63,40 @@ time_size_checked = deque(maxlen = 20)
 json_list = []
 current_user = {'username':'0','location' : ['0','0']}
 
-cron = Scheduler(daemon=True)
-cron.start()
-P=1
-# Scheduler.add_job(ex.random_rating(False), 'interval', seconds=1, id='my_job_id')
-
-#-------------------------------------- Python Dash -------------------------------------------------------
-# app = dash.Dash(__name__, server=server, url_base_app = '/dash')
-
-# #*********LIVE GRAPH USING DASH*****************
-# # dash_x = deque(maxlen = 20)
-# # dash_y = deque(maxlen = 20)
-# # dash_x.append(1)
-
-# app.layout= html.Div([
-# 	dcc.Graph(id='live-graph', animate=True),
-# 	dcc.Interval(
-# 		id = 'graph-update',
-# 		interval = 50000
-# 		)
-# ])
-
-#***********LIVE MAP USING DASH***************
-# @app.callback(Output('live-graph','figure'),events = [Event('graph-update','interval')])
-# def dash_map():
-# 	global current_user
-# 	latitude = 45
-# 	longitude = -73
-	
-# 	data = [ go.Scattermapbox(
-#         lat=[latitude],
-#         lon=[longitude],
-#         mode='markers',
-#         marker=dict(
-#             size=14
-#         ),
-#         text=[current_user['username']],
-#     )]
-# 	layout = go.Layout(
-# 	    autosize=True,
-# 	    hovermode='closest',
-# 	    mapbox=dict(
-# 	        accesstoken='pk.eyJ1IjoiYW1pbmJlaXJhbWkiLCJhIjoiY2poc2N3MmxmMDFtYjN2cnducDY1cTh4ZiJ9.IWbzbZm_waJI--kxP0bLXw',
-# 	        bearing=0,
-# 	        center=dict(
-# 	            lat=45,
-# 	            lon=-73
-# 	        ),
-# 	        pitch=0,
-# 	        zoom=5
-# 	    ),)
-# 	return {'data':[data],'layout':layout}
 
 
-#-------------------------------------- Flask-------------------------------------------------------
+@app.route('/init', methods= ['POST','GET'])
+def db_information():
+	if request.method == 'POST':
+		if request.form['submit_button'] == 'refresh':
+			db_information = info.current_information()
+			fcn.firebase_writing(db_information,'info','init_information')
+		elif request.form['submit_button'] == 'clean':
+			init.init_everything()
+		return redirect(url_for('db_information'))
+	elif request.method == 'GET':
+		return render_template('init.html')
 
-# @cron.interval_schedule(seconds=P)
-# @app.route('/actions', methods = ['POST','GET'])
-# def actions_json():
-# 	list_len = len(json_list)
-# 	if list_len <=10:
-# 		json_list.insert(0,ex.random_rating(True))
-# 		current_user['username'] = json_list[0]['user']
-# 		current_user['position']=json_list[0]['position']
-# 	else:
-# 		json_list.pop(10)
-# 		json_list.insert(0,ex.random_rating(True))
-# 		current_user['username'] = json_list[0]['user']
-# 		current_user['position']=json_list[0]['position']
+@app.route('/test', methods= ['POST','GET'])
+def test_data():
+	data = []
+	if request.method == 'POST':
+		if request.form['submit_button'] == 'Do Something':
+			data.append('amin')
+		elif request.form['submit_button'] == 'Do Something Else':
+			data.append('zahra')
+		else:
+			data.append('nothing')
+		print data
+		return redirect(url_for('test_data'))
+	elif request.method == 'GET':
+		init.init_everything()
+		return render_template('test.html',data = data)
 
-# 	print fcn.table_size()
-# 	return jsonify((json_list))
-@cron.interval_schedule(seconds =P)
-@app.route('/init')
-def initialization():
-	# init.drop_snapshots()
-	# ex.random_rating(True)
-	# init.drop_tables()
-	# init.drop_function()
-	# init.create_table()
-	# init.db_function()
-	# init.create_snapshot_sequence()
-	return render_template('base.html')
+@app.route('/delete')
+def delete_everything():
+	init.init_everything()
+	return render_template('index.html')
 
 @app.route('/action_table')
 def action_table():

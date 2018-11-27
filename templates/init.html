@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page_title">
+	<span>Initialization Page</span>
+</div>
+
+<div class="general_info">
+	<div class="info_header">
+		<form class="action_icons", method="POST">
+			<button class="refresh_button" name="submit_button" value="refresh">Refresh</button>
+		</form>
+		<button class="delete_all">Clean</button>
+	</div>
+	<div class="button_container">
+			<button class="collapsible">Relation: <span id="relationSpanTitle"></span></button>
+	
+		<div class="db_content">
+	  		<ul>
+	  			<li>Number of records: <span id="no_record"></span></li>
+	  			<li>Size of relation: <span id="relation_size"></span></li>
+	  		</ul>
+		</div>
+	</div>
+	<div class="button_container">
+			<button class="collapsible">Log file: <span id="logSpanTitle"></span></button>
+
+		<div class="db_content">
+			<ul>
+	  			<li>Number of records: <span id="timeline_record"></span></li>
+	  			<li>Size of relation: <span id="timeline_size"></span></li>
+	  			<li>Number of deletions: <span id="number_of_deletes"></span></li>
+	  			<li>Number of updates: <span id="number_of_updates"></span></li>
+	  			<li>Number of updates: <span id="creation_time"></span></li>
+  			</ul>
+		</div>
+	</div>
+	<div class="button_container">
+			<button class="collapsible">Snapshots: <span id="snapshot_number"></span></button>
+		<div class="db_content">
+	  		<ul id="snapshot_list">
+	  		</ul>
+		</div>
+	</div>
+</div>
+<div class="warning_action">
+	<p style="color:red"> warning!</p>
+	<p> The requested action deletes all the records in the database, removes snapshots and resets all the database settings. Do you want to proceed?</p>
+	<form class="accept", method="POST">
+		<button class="yes" name="submit_button" value="clean">YES</button>
+	</form>
+		<button class="reject">No</button>
+</div>
+<div class="loginfo">
+	<textarea class="logarea" readonly rows="6"></textarea>
+</div>
+{% endblock %}

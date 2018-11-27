@@ -8,11 +8,13 @@ from datetime import datetime
 from sklearn.cluster import KMeans
 from sklearn.neighbors import KNeighborsClassifier
 import datetime as dt
+import matplotlib.pyplot as plt
 import numpy as np
-import random
-import time
-import threading
+import json
 
+
+
+#database initialization
 db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
 clsuter_info = {'clusters':[],'snapshots':[]}
 
@@ -68,7 +70,7 @@ def random_insert(): #insrts random records to the main database
 
 def random_delete(): #deletes random number of records
 	attribs = [x for x in fcn.table_attribs('rating') if not x == 'signature']
-	random_record_list = list(fcn.fetch_specific_record_list(attribs,'rating','ORDER BY RANDOM() LIMIT 1'))
+	random_record_list = list(fcn.fetch_specific_record_list(attribs,'rating','ORDER BY RANDOM() LIMIT 1','one'))
 	user_location = fcn.fetch_specific_attribs_record(['lat','long'],'users','where user_id = {0}'.format(random_record_list[7]))
 	try:
 		sql = "DELETE FROM rating WHERE id =(%s)"
@@ -78,13 +80,14 @@ def random_delete(): #deletes random number of records
 		for i in range(1,len(random_record_list)-1):
 			random_record_list[i] = None
 		signature = fcn.create_signature(random_record_list,random_record_list[8])
-		record_id = fcn.fetch_specific_record_list(['last_value',],'id','')[0]
+		record_id = fcn.fetch_specific_record_list(['last_value',],'id','','one')[0]
 		sql = "UPDATE timeline SET signature = (%s) WHERE id = (%s)"
 		parameters = [signature,record_id]
 		db.command(sql,parameters)
 		db.commit()
 		print 'delete'
-		return {'action':'delete','user':random_record_list[8],'movie':random_record_list[2],'rating':random_record_list[6],'position':[user_location['lat'],user_location['long']],'time':str(datetime.now())}
+		data = {'action':'delete','user':random_record_list[8],'movie':random_record_list[2],'rating':random_record_list[6],'position':[user_location['lat'],user_location['long']],'time':str(datetime.now())}
+		return data
 	except Exception as e:
 		print e
 		return 'error'
@@ -92,7 +95,7 @@ def random_delete(): #deletes random number of records
 def random_update():
 	random_rate = randint(1,5)
 	attribs = [x for x in fcn.table_attribs('rating') if not x == 'signature']
-	random_record_list = list(fcn.fetch_specific_record_list(attribs,'rating','ORDER BY RANDOM() LIMIT 1'))
+	random_record_list = list(fcn.fetch_specific_record_list(attribs,'rating','ORDER BY RANDOM() LIMIT 1','one'))
 	random_record_dict = fcn.fetch_specific_attribs_record(attribs,'rating', 'WHERE id ={0}'.format(random_record_list[0]))
 	random_record_list[6] = random_rate
 	signature = fcn.create_signature(random_record_list,random_record_dict['username'])
@@ -102,11 +105,12 @@ def random_update():
 	db.command(sql,parameters)
 	db.commit()
 	print 'update'
-	return {'action':'update','user':random_record_dict['username'],'movie':random_record_dict['mv_name'],'rating':random_record_dict['star'],'position':[user_location['lat'],	user_location['long']],'time':datetime.now()}
-
+	data = {'action':'update','user':random_record_dict['username'],'movie':random_record_dict['mv_name'],'rating':random_record_dict['star'],'position':[user_location['lat'],	user_location['long']],'time':datetime.now()}
+	return data
 # ********************************************************** SIMULATION FUNCTIONS ************************************************************
 
 def random_rating(permission):
+	action_result = None
 	random_action = randint(1,3)
 	switcher = {
 		1: random_insert,
@@ -122,16 +126,22 @@ def random_rating(permission):
 			action_result = switcher[random_action]()
 	return action_result
 
-def random_query_generator():
+def random_query_generator(number):
 	fmt = '%Y-%m-%d %H:%M:%S'
 	duration = fcn.table_duration('timeline')
 	start = duration['min']
 	end = duration['max']
+	number = int(number)/10
 	second_difference = fcn.calc_sec_difference(start,end)
-	query_list = fcn.create_query_clusters(second_difference,20,10)
+	query_list = fcn.create_query_clusters(second_difference,10,number)
 	random_dates = []
 	for i in range(len(query_list)):
-		random_dates.append(start + dt.timedelta(seconds = query_list[i]))
+		date = start + dt.timedelta(seconds = query_list[i])
+		random_dates.append(date)
+	fcn.delete_firebase('queries')
+	for i in range(len(random_dates)):
+		fcn.firebase_writing({'name':'query {0}'.format(str(i)), 'timestamp': str(random_dates[i])},'queries','')
+	fcn.save_query_info(random_dates)
 	return random_dates
 
 #********************************************************* CLUSTERING FUNCTIONS ***********************************************************
@@ -145,7 +155,8 @@ def make_query_list_2D(queries):
 def optimal_snap_positions(query_clusters,base_date):
 	snapshot_positions = []
 	for i in range(len(query_clusters)):
-		snapshot_positions.append(fcn.calc_time_from_seconds(np.median(query_clusters[i]),base_date))
+		position = fcn.calc_time_from_seconds(np.median(query_clusters[i]),base_date)
+		snapshot_positions.append(position)
 	return sorted(snapshot_positions)
 
 def fetch_clustered_info(queries,clusters,no_clusters,base_date):
@@ -167,15 +178,25 @@ def query_clustering(queries,no_clusters):
 	y_kmeans = kmeans.fit_predict(queries)
 	return y_kmeans, kmeans.cluster_centers_
 
-def recommend_no_clusters(query_data,max_snapshot): #elbow method in clustering
+def recommend_no_clusters(max_snapshot): #elbow method in clustering
 	cost = []
+	query_in_seconds = []
+	queries = fcn.read_query_info()
+	duration = fcn.table_duration('timeline')
+	for i in range(len(queries)):
+		query_in_seconds.append(fcn.calc_sec_difference(duration['min'],queries[i]))
+	query_list_2D = make_query_list_2D(query_in_seconds)
 	for i in range(1,max_snapshot+1):
 		kmeans = KMeans(n_clusters = i, init = 'k-means++', max_iter = 300, n_init = 10, random_state = 0)
-		y_kmeans = kmeans.fit_predict(query_data)
+		y_kmeans = kmeans.fit_predict(query_list_2D)
 		cost.append(kmeans.inertia_)
-	return cost
+	fig = plt.figure()
+	plt.plot(cost)
+	plt.xlabel('number of snapshots')
+	plt.ylabel('overall cost')
+	fig.savefig('static/charts/elbow.png')
 
-def create_clusters(query_list):
+def create_clusters(query_list,number):
 	query_in_seconds = []
 	cluster_info_date = {}
 	cluster_info_scalar = {}
@@ -183,9 +204,9 @@ def create_clusters(query_list):
 	for i in range(len(query_list)):
 		query_in_seconds.append(fcn.calc_sec_difference(duration['min'],query_list[i]))
 	query_list_2D = make_query_list_2D(query_in_seconds)
-	recommended = recommend_no_clusters(query_list_2D,10) #elbow method to find the optimal snapshot numbers
-	clustered_list,centroids = query_clustering(query_list_2D,6)
-	query_clusters_date,snapshots_date, query_clusters_seconds = fetch_clustered_info(query_list_2D,clustered_list,6,duration['min'])
+	# recommended = recommend_no_clusters(10) #elbow method to find the optimal snapshot numbers
+	clustered_list,centroids = query_clustering(query_list_2D,number)
+	query_clusters_date,snapshots_date, query_clusters_seconds = fetch_clustered_info(query_list_2D,clustered_list,number,duration['min'])
 	cluster_info_date['clusters_date'] = query_clusters_date
 	cluster_info_date['snapshots_date'] = snapshots_date
 	cluster_info_date['base_date'] = duration['min']
@@ -339,10 +360,16 @@ def query_K_nearest(query, clusters):
 	predicted_class = neigh.predict(query_sec)[0]
 	return class_names[predicted_class]
 
-def optimal_trusted_snapshot_generation():
+def prepare_and_save_firebase(clustering_info,snapshot_names):
+	fcn.delete_firebase('snapshots')
+	for i in range(len(snapshot_names)):
+		print {'name':snapshot_names[i], 'timestamp': str(clustering_info['snapshots_date'][i])}
+		fcn.firebase_writing({'name':snapshot_names[i], 'timestamp': str(clustering_info['snapshots_date'][i])},'snapshots', '')
+
+def optimal_trusted_snapshot_generation(number):
 	generated_snapshots = []
-	queries = random_query_generator()
-	clustering_info,snapshot_info = create_clusters(queries)
+	queries = fcn.read_query_info()
+	clustering_info,snapshot_info = create_clusters(queries, number)
 	optimal_snapshots = clustering_info['snapshots_date']
 	intervals = fcn.generate_verification_intervals(optimal_snapshots)
 	optimal_snapshots.pop(0)
@@ -359,6 +386,9 @@ def optimal_trusted_snapshot_generation():
 
 	fcn.delete_snapshot_info()
 	fcn.save_snapshot_info(snapshot_info,clustering_info,generated_snapshots)
+	# for i in range(len(snapshot_info)):
+	# 	print str(clustering_info['snapshots_date'][i])
+	prepare_and_save_firebase(clustering_info, generated_snapshots)
 	return generated_snapshots
 
 def choose_snapshot_materialization(query_timestamp):
@@ -379,4 +409,28 @@ def run_query(query_timestamp):
 	query_time = query_timestamp
 	materialized = choose_snapshot_materialization(query_timestamp)
 	snapshot_materialization(operation,rel_name,timeline_table,query_time,materialized)
-	
+	fcn.firebase_writing({'query':query_timestamp, 'materialized':materialized},'individual_query','')
+
+def query_snapshot(snapshot_name):
+	dict = {}
+	dict_list = []
+	data = fcn.fetch_table_records(snapshot_name)
+	keys = fcn.table_attribs(snapshot_name)
+	integerKeys = ['mov_id','rec_id','star','user_id','release_date']
+	forbiddenKeys = ['flag','__t__' ,'signer', 'snap_sign']
+	keys = [x for x in keys if x not in integerKeys+forbiddenKeys]
+	for i in range(len(data)):
+		temp_dict = {x :data[i][x] for x in keys}
+		for integers in integerKeys:
+			temp_dict[integers] = str(data[i][integers])
+		dict_list.append(temp_dict)
+	dict['name'] = snapshot_name
+	dict['data'] = dict_list
+	dict['status'] = fcn.verify_snapshot_signature(snapshot_name)
+	dict['keys'] = keys+integerKeys
+	fcn.firebase_writing(dict,'snapshotQuery','snapshot')
+
+def verify_trust():
+	duration = fcn.table_duration('timeline')
+	status = fcn.verify_trustworthiness(duration['min'],duration['max'])
+	print status

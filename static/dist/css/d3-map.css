@@ -1,0 +1,25 @@
+.scenario-container{
+	margin-top: 20px;
+	width: 620px;
+	height: 500px;
+	background: grey;
+	float: left;
+	margin-left: 120px;
+	overflow: auto;
+}
+.data-generation{
+	width: 100%;
+	background: black;
+}
+.qury-generation{
+	width: 100%;
+	background: red;
+}
+.snapshot-generation{
+	width: 100%;
+	background: green;
+}
+.trust-checker{
+	width: 100%;
+	background: blue;
+}

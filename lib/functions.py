@@ -1,6 +1,8 @@
 # BY AMIN BEIRAMI -- REGULAR FUNCTIONS
 from datetime import datetime,timedelta
 from collections import OrderedDict
+import random, time, firebase_admin
+from firebase_admin import credentials, firestore
 from lib import postgresCon as pc
 from lib import keyGen as kg
 from random import randint
@@ -10,8 +12,23 @@ import pandas as pd
 import numpy as np
 import functools
 import os
-# from lib import thread_timer as tm
-# from threading import Event, Thread
+
+#firestore initialization
+cred = credentials.Certificate('lib/data/materialization-6d59d-firebase-adminsdk-1viqn-31765a2d2a.json')
+default_app = firebase_admin.initialize_app(cred)
+firedb = firestore.client()
+
+#database initialization
+db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
+
+#the function to write into firestore
+def firebase_writing(data,coll,doc):
+	doc_ref = None
+	if doc:
+		doc_ref = firedb.collection(coll).document(doc)
+	else:
+		doc_ref = firedb.collection(coll).document()
+	doc_ref.set(data)
 
 def call_repeatedly(interval, func, *args):
     stopped = Event()
@@ -21,7 +38,17 @@ def call_repeatedly(interval, func, *args):
     Thread(target=loop).start()    
     return stopped.set
 
-db = pc.DataBase(SERVER,USERNAME,PASSWORD,DATABASE)
+#The function to delete from firestore
+def delete_firebase(col):
+    coll_ref = firedb.collection(col)
+    batch = firedb.batch()
+    docs = coll_ref.limit(500).get()
+
+    for doc in docs:
+        batch.delete(doc.reference)
+        batch.commit()
+
+
 
 def drop_table(name):
 	sql = 'DROP TABLE IF EXISTS {0}'.format(name)
@@ -44,6 +71,16 @@ def table_attribs(table_name):
 def make_dict(attribs,data):
 	dictonary = dict(zip([x for x in attribs],[y for y in data]))
 	return dictonary
+
+def fetch_table_records(table_name):
+	record_list = []
+	sql = "SELECT * FROM {0}".format(table_name)
+	records = db.query(sql,None,'all')
+	attributes = table_attribs(table_name)
+	for rec in records:
+		rec_dictionary = make_dict(attributes,rec)
+		record_list.append(rec_dictionary)
+	return record_list
 
 def fetch_everything_record_dict(table_name,condition):
 	sql = "SELECT * FROM {0} {1}".format(table_name,condition)
@@ -136,8 +173,8 @@ def verify_signature(raw_parameters,signature,username):
 	result = keyGen.verifying_signature(data,signature,key['public_key'])
 	return result
 
-def table_size():
-	sql = "select pg_relation_size('rating');"
+def table_size(relation):
+	sql = "select pg_relation_size('{0}')".format(relation)
 	result = db.query(sql,None,'one')
 	return {'size': int(result[0]),'time_checked':datetime.now()}
 
@@ -196,6 +233,9 @@ def check_records_signature(start_timestamp, end_timestamp):
 def chain_verification(start_timestamp,end_timestamp):
 	chain_trust_check = {}
 	list_of_ids = select_records_ids('timeline',start_timestamp,end_timestamp)
+	list_of_ids = sorted(list_of_ids)
+	list_of_ids = list_of_ids[:-1]
+	print list_of_ids
 	for id_no in list_of_ids:
 		current_record_signature = fetch_specific_attribs_record(['signature'],'timeline',"where id = '{0}'".format(id_no[0]))
 		next_record_prev_signature= fetch_specific_attribs_record(['prev_signature'],'timeline',"where id = '{0}'".format(id_no[0]+1))
@@ -217,16 +257,23 @@ def regular_blockchain_verification(start_timestamp,end_timestamp):
 	for key,value in chain_check.items():
 		if value == 'Untrusted':
 			untrusted_chain.append(key)
+	signature_dict = {str(k): v for k, v in signature_check.items()}
+	chain_dict = {str(k): v for k, v in chain_check.items()}
+	firebase_writing(signature_dict,'record_signature','timeline')
+	firebase_writing(chain_dict,'chain_check','timeline')
 	return untrusted_record, untrusted_chain
 
 def verify_trustworthiness(start_timestamp,end_timestamp):
 	untrusted_record, untrusted_chain = regular_blockchain_verification(start_timestamp,end_timestamp)
-	if not (untrusted_record and untrusted_chain):
+	status = ''
+	if not (untrusted_record or untrusted_chain):
 		print 'The chain is trustworthy'
-		return 'Trusted'
+		status = 'Trusted'
 	else:
 		print 'The chain is broken'
-		return 'Untrusted'
+		status = 'Untrusted'
+	firebase_writing({'status':status}, 'trustworthiness', 'status')
+	return status
 
 def add_columns_snapshot(snapshot_name):
 	sql = '''
@@ -263,6 +310,29 @@ def generate_verification_intervals(optimal_timestamps):
 	for i in range(len(optimal_timestamps)-1):
 		intervals.append([optimal_timestamps[i],optimal_timestamps[i+1]])
 	return intervals
+def save_query_info(queries):
+	if os.path.exists('lib/data/info.DAT'):
+		os.remove('lib/data/query.DAT')
+	else:
+		print 'file does not exist'
+
+	f = open('lib/data/query.DAT','w')
+	for i in range(len(queries)):
+		f.write(str(queries[i])+'\n')
+	f.close()
+
+def read_query_info():
+	queries = []
+	fmt = '%Y-%m-%d %H:%M:%S.%f'
+	if os.path.exists('lib/data/query.DAT'):
+		with open('lib/data/query.DAT','r') as f:
+			for lines in f:
+				query_info = lines.strip('\n')
+				query_datetime = datetime.strptime(query_info, fmt)
+				queries.append(query_datetime)
+	else:
+		print 'snapshot information doesnot exist'
+	return queries
 
 def save_snapshot_info(snapshot_scalar, snapshot_dates,snapshot_names):
 	sorted_keys = sorted(snapshot_scalar.keys())
@@ -270,7 +340,6 @@ def save_snapshot_info(snapshot_scalar, snapshot_dates,snapshot_names):
 	first_line = '***snapshot_timestamp|snapshot_scalar|snapshot_name|queries_timestamp|queries_scalar|base_timestamp|cluster_min|cluster_max***\n'
 	f.write(first_line)
 	for i in range(len(snapshot_names)):
-		print sorted_keys[i]
 		clause = "{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}\n".format(snapshot_dates['snapshots_date'][i],
 			sorted_keys[i],
 			snapshot_names[i],

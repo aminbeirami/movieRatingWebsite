@@ -20,8 +20,24 @@
     <!-- Custom CSS -->
     <link href="../static/dist/css/sb-admin-2.css" rel="stylesheet">
 
+    <!-- Additional CSS -->
+    <link href="../static/dist/css/additional.css" rel="stylesheet">
+    
     <!-- Custom Fonts -->
     <link href="../static/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">
+
+    <!-- Timeline CSS -->
+    <link href="../static/dist/css/timeline-style.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed" rel="stylesheet">
+
+    <!-- Activity Table css -->
+    <link href="../static/dist/css/activity-table.css" rel="stylesheet" type="text/css">\
+
+    <!-- D3 Map -->
+    <link href="../static/dist/css/d3-map.css" rel="stylesheet" type="text/css">\
+
+
 </head>
 
 <body>
@@ -129,6 +145,9 @@
                             <a href="{{url_for('main')}}"><i class="fa fa-dashboard fa-fw"></i> Dashboard</a>
                         </li>
                         <li>
+                            <a href="{{url_for('db_information')}}"><i class="fa fa-edit fa-fw"></i> Initialization</a>
+                        </li>
+                        <li>
                             <a href="#"><i class="fa fa-bar-chart-o fa-fw"></i> Charts<span class="fa arrow"></span></a>
                             <ul class="nav nav-second-level">
                                 <li>
@@ -141,11 +160,9 @@
                             <!-- /.nav-second-level -->
                         </li>
                         <li>
-                            <a href="tables.html"><i class="fa fa-table fa-fw"></i> Tables</a>
+                            <a href="{{url_for('test_data')}}"><i class="fa fa-table fa-fw"></i> Tables</a>
                         </li>
-                        <li>
-                            <a href="forms.html"><i class="fa fa-edit fa-fw"></i> Forms</a>
-                        </li>
+
                         <li>
                             <a href="#"><i class="fa fa-wrench fa-fw"></i> UI Elements<span class="fa arrow"></span></a>
                             <ul class="nav nav-second-level">
@@ -200,18 +217,7 @@
                             </ul>
                             <!-- /.nav-second-level -->
                         </li>
-                        <li class="active">
-                            <a href="#"><i class="fa fa-files-o fa-fw"></i> Sample Pages<span class="fa arrow"></span></a>
-                            <ul class="nav nav-second-level">
-                                <li>
-                                    <a class="active" href="blank.html">Blank Page</a>
-                                </li>
-                                <li>
-                                    <a href="login.html">Login Page</a>
-                                </li>
-                            </ul>
-                            <!-- /.nav-second-level -->
-                        </li>
+                        
                     </ul>
                 </div>
                 <!-- /.sidebar-collapse -->
@@ -234,36 +240,17 @@
 
     </div>
     <!-- /#wrapper -->
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/5.5.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.5.8/firebase-firestore.js"></script>
+    <script src="../static/dist/js/firebase_init.js"></script>
+
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v5.js"></script>
 
     <!-- jQuery -->
     <script src="../static/vendor/jquery/jquery.min.js"></script>
-
-    <script type="text/javascript">
-        $(document).ready(function(){
-            refresh();
-            $.getJSON("/actions",function(data){
-                action_data = '';
-                $.each(data,function(key,value){
-                    if(value.action == 'delete')
-                        {action_data += '<tr bgcolor="#FF0000">';}
-                    else
-                        {action_data += '<tr>';
-                        action_data += '<td>' + value.action + '</td>';
-                        action_data += '<td>' + value.movie + '</td>';
-                        action_data += '<td>' + value.user + '</td>';
-                        action_data += '<td>' + value.rating + '</td>';
-                        action_data += '</tr>';}
-                });
-                $('#table_body').append(action_data);
-            });
-        });
-        function refresh(){
-            setTimeout(function(){
-                $('#table_body').load('/action_table');
-                refresh();
-            },1000);
-        }
-    </script>
 
     <!-- Bootstrap Core JavaScript -->
     <script src="../static/vendor/bootstrap/js/bootstrap.min.js"></script>
@@ -274,6 +261,18 @@
     <!-- Custom Theme JavaScript -->
     <script src="../static/dist/js/sb-admin-2.js"></script>
 
+    <!-- Additional Scripts -->
+    <script src="../static/dist/js/ad-admin.js"></script>
+
+
+    <!-- Timeline Visualization -->
+    <script src="../static/charts/dataProjection.js"></script>
+
+    <!-- Initial Info -->
+    <script src="../static/dist/js/general_info.js"></script>
+
+    <!-- Activity Table -->
+    <script src="../static/dist/js/activity-table.js"></script>
 </body>
 
 </html>
