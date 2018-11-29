@@ -223,7 +223,16 @@ const recordTableFill = (d=>{
 		document.querySelector('.record-status-table').appendChild(row)
 	}
 	});
-	console.log(document.querySelector('.record-status-table'))
+	
+	var tableData = document.querySelector('.record-status-table');
+	var rowData = tableData.querySelectorAll('td')
+	rowData.forEach(d=>{
+		if (d.innerHTML === 'Untrusted'){
+			d.style.color = 'red';
+		}
+		console.log(d.innerHTML);	
+	});
+	
 });
 
 db.collection('record_signature').onSnapshot(res => {
@@ -247,3 +256,4 @@ db.collection('record_signature').onSnapshot(res => {
 	});
 		recordTableFill(record_check)
 });
+
